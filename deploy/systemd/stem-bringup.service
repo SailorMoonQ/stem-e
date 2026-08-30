@@ -1,0 +1,25 @@
+; STEM-E onboard bringup.
+;
+; Starts after the discovery server so that the graph forms cleanly on boot.
+; Everything this launches shares a host and therefore communicates over the Fast DDS
+; shared memory transport.
+;
+; TODO: replace the placeholders below before installing.
+
+[Unit]
+Description=STEM-E onboard bringup
+After=stem-discovery-server.service
+Requires=stem-discovery-server.service
+
+[Service]
+Type=simple
+User=REPLACE_WITH_ROBOT_USER
+EnvironmentFile=/home/REPLACE_WITH_ROBOT_USER/stem-e/config/env/robot.env
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && \
+    source ${STEM_WS}/install/setup.bash && \
+    ros2 launch stem_bringup real.launch.py'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

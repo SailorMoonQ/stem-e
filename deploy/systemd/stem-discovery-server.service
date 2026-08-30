@@ -1,0 +1,28 @@
+; Fast DDS discovery server. Runs on the onboard computer, which is the one machine
+; in the fleet that is always up. Every other machine points at it through
+; ROS_DISCOVERY_SERVER.
+;
+; Install:
+;   sudo cp stem-discovery-server.service /etc/systemd/system/
+;   sudo systemctl enable --now stem-discovery-server
+;
+; TODO: replace the placeholders below before installing.
+
+[Unit]
+Description=Fast DDS discovery server for STEM-E
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=REPLACE_WITH_ROBOT_USER
+EnvironmentFile=/home/REPLACE_WITH_ROBOT_USER/stem-e/config/env/robot.env
+ExecStart=/opt/ros/jazzy/bin/fastdds discovery \
+    --server-id 0 \
+    --ip-address REPLACE_WITH_ROBOT_IP \
+    --port 11811
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

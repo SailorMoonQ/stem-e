@@ -1,0 +1,17 @@
+# This project is developed on Windows and Linux but only ever runs on Linux.
+# CRLF in a shell script or a systemd unit produces "bad interpreter" and
+# "Invalid argument" failures that are painful to diagnose, so normalise to LF
+# unconditionally rather than relying on core.autocrlf being set correctly on
+# every machine.
+* text=auto eol=lf
+
+# Binary assets, mostly meshes. Never touch these.
+*.stl   binary
+*.dae   binary
+*.obj   binary
+*.mtl   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.mcap  binary
+*.db3   binary

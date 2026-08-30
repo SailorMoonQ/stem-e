@@ -1,0 +1,14 @@
+; Oneshot unit driven by stem-rosbag-sync.timer.
+;
+; TODO: replace the placeholders below before installing.
+
+[Unit]
+Description=Sync STEM-E rosbags to the NAS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=REPLACE_WITH_ROBOT_USER
+EnvironmentFile=/home/REPLACE_WITH_ROBOT_USER/stem-e/config/env/robot.env
+ExecStart=/home/REPLACE_WITH_ROBOT_USER/stem-e/tools/rosbag/sync_to_nas.sh

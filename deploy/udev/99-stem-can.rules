@@ -1,0 +1,14 @@
+# Stable names for the CAN adapters on the onboard computer.
+#
+# Without this, bus assignment follows enumeration order and the arm and base swap
+# adapters across reboots. The names here must match the can_interface parameters in
+# src/description/stem_description/urdf/stem.urdf.xacro.
+#
+# Install:
+#   sudo cp 99-stem-can.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload && sudo udevadm trigger
+#
+# TODO: fill in the real serial numbers once the adapters are chosen. Read them with:
+#   udevadm info -a -p /sys/class/net/can0 | grep -i serial
+
+# SUBSYSTEM=="net", ACTION=="add", ATTRS{serial}=="REPLACE_ME", NAME="can0"

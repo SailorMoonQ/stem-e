@@ -1,0 +1,28 @@
+# colcon
+build/
+install/
+log/
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# machine local configuration: the .example files are tracked, real values are not.
+# This repository is public. Never commit real network addresses.
+config/env/*.env
+!config/env/*.env.example
+config/middleware/*.xml
+!config/middleware/*.xml.example
+
+# recorded data
+*.mcap
+*.db3
+rosbags/
+
+# editors
+.vscode/
+.idea/
+*.swp

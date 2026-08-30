@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<!--
+  STEM-E top level robot description.
+
+  This file is seam 2. It is the only place in the repository that knows which
+  ros2_control backend is in use. Controllers, MoveIt and Nav2 configuration is
+  identical for all three, and nothing above the SystemInterface may branch on the
+  backend. If something does, the seam has been broken.
+
+  Usage:
+    xacro stem.urdf.xacro                    # real hardware
+    xacro stem.urdf.xacro use_sim:=true      # Gazebo
+    xacro stem.urdf.xacro use_mock:=true     # mock, no simulator
+
+  TODO: include the subsystem macros from stem_base_description,
+  stem_lift_description, stem_arm_description (twice, left and right) and
+  stem_head_description, and declare their joints inside the matching
+  <ros2_control> blocks below.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="stem_e">
+
+  <xacro:arg name="use_sim"  default="false"/>
+  <xacro:arg name="use_mock" default="false"/>
+
+  <!--
+    Arguments arrive as strings. Comparing them explicitly is required: a bare
+    $(arg use_sim) is the non empty string "false", which is truthy, so a naive
+    xacro:if on it is always taken.
+  -->
+  <xacro:property name="sim"  value="${'$(arg use_sim)'.lower()  == 'true'}"/>
+  <xacro:property name="mock" value="${'$(arg use_mock)'.lower() == 'true'}"/>
+
+  <xacro:if value="${sim and mock}">
+    <xacro:message type="error">use_sim and use_mock are mutually exclusive.</xacro:message>
+  </xacro:if>
+
+  <link name="base_link"/>
+
+  <!--
+    One hardware component per subsystem, all under a single controller_manager.
+    See docs/adr/0006-single-controller-manager.md.
+
+    Components slower than 500 Hz divide down inside their own read() and write().
+    Hardware interfaces must never block: the update budget is shared, and a blocking
+    CAN or serial read in any component degrades the arms.
+  -->
+  <xacro:macro name="stem_hardware" params="name real_plugin *real_params">
+    <ros2_control name="${name}" type="system">
+      <xacro:if value="${sim}">
+        <hardware>
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+      </xacro:if>
+      <xacro:if value="${mock}">
+        <hardware>
+          <plugin>mock_components/GenericSystem</plugin>
+        </hardware>
+      </xacro:if>
+      <xacro:unless value="${sim or mock}">
+        <hardware>
+          <plugin>${real_plugin}</plugin>
+          <xacro:insert_block name="real_params"/>
+        </hardware>
+      </xacro:unless>
+      <!-- TODO: <joint> declarations belong here, contributed by the subsystem macros. -->
+    </ros2_control>
+  </xacro:macro>
+
+  <xacro:stem_hardware name="stem_base" real_plugin="stem_base_hardware/BaseSystemHardware">
+    <param name="can_interface">can0</param>
+  </xacro:stem_hardware>
+
+  <xacro:stem_hardware name="stem_lift" real_plugin="stem_lift_hardware/LiftSystemHardware">
+    <param name="can_interface">can0</param>
+  </xacro:stem_hardware>
+
+  <xacro:stem_hardware name="stem_arm_left" real_plugin="stem_arm_hardware/ArmSystemHardware">
+    <param name="can_interface">can1</param>
+    <param name="side">left</param>
+  </xacro:stem_hardware>
+
+  <xacro:stem_hardware name="stem_arm_right" real_plugin="stem_arm_hardware/ArmSystemHardware">
+    <param name="can_interface">can2</param>
+    <param name="side">right</param>
+  </xacro:stem_hardware>
+
+  <xacro:stem_hardware name="stem_head" real_plugin="stem_head_hardware/HeadSystemHardware">
+    <param name="can_interface">can0</param>
+  </xacro:stem_hardware>
+
+  <!--
+    Simulation only tags live behind this guard, never inline in the subsystem
+    descriptions. This is what keeps the description reusable by the real robot and
+    by a future second simulation backend.
+  -->
+  <xacro:if value="${sim}">
+    <gazebo>
+      <plugin filename="gz_ros2_control-system"
+              name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <!-- TODO: point at stem_control_config once the controller parameters land. -->
+      </plugin>
+    </gazebo>
+  </xacro:if>
+
+</robot>

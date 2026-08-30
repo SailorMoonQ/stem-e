@@ -1,0 +1,15 @@
+; Periodic sync of finished rosbags to the NAS.
+;
+; A timer rather than a continuous service, because the sync must not compete with a
+; recording session for the wireless link.
+; See docs/adr/0005-rosbags-record-locally-then-sync.md.
+
+[Unit]
+Description=Sync STEM-E rosbags to the NAS
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
