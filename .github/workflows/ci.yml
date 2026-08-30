@@ -15,9 +15,9 @@ jobs:
     name: lint and core unit tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -31,24 +31,44 @@ jobs:
         run: pytest
 
   # Layers 2 and 3: workspace build, ROS level tests, mock backend integration tests.
+  #
+  # Deliberately plain colcon rather than action-ros-ci. That action builds its own
+  # workspace and pip installs into an environment that shadows the apt provided
+  # ament_package, which breaks find_package(ament_cmake). The repository is already
+  # laid out as a colcon workspace, so there is nothing for it to set up.
   workspace:
     name: colcon build and test
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: jazzy
 
-      - uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          target-ros2-distro: jazzy
-          package-name: >-
-            stem_msgs
-            stem_description
-            stem_control_config
-            stem_bringup
+      - name: Resolve dependencies
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          rosdep update --rosdistro jazzy
+          # The heavy stacks are skipped while the packages that declare them are
+          # still empty shells. Drop a key from this list when its package gets real
+          # CMake targets that actually need the dependency at build time.
+          rosdep install --from-paths src --ignore-src -y --rosdistro jazzy \
+            --skip-keys "moveit_ros_move_group nav2_bringup gz_ros2_control ros_gz_sim ros_gz_bridge"
+
+      - name: Build
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --symlink-install --event-handlers console_direct+
+
+      - name: Test
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
 
 # Layer 4, headless Gazebo regression, deliberately does not run here.
 # See docs/adr/0004-no-docker.md: it runs on the workstation via tools/dev/.
