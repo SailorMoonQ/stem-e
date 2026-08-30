@@ -7,7 +7,7 @@
   <maintainer email="219774340+SailorMoonQ@users.noreply.github.com">SailorMoonQ</maintainer>
   <license>Apache-2.0</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>python3-setuptools</buildtool_depend>
   <depend>rclpy</depend>
   <depend>stem_msgs</depend>
 
