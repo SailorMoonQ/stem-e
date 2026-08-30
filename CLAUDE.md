@@ -30,6 +30,14 @@ the relevant ADR in `docs/adr/` needs revisiting first.
    documentation addresses; real values go in the gitignored copies. This repository is
    public.
 
+## Source file conventions
+
+`ament_lint_auto` runs on every `ament_cmake` package, so files in those packages must
+carry an Apache-2.0 copyright header or `ament_copyright` fails the build. Docstrings
+follow `ament_pep257`, which enforces D213: the summary line starts on the line *after*
+the opening quotes, not on the same line. `src/bringup/stem_bringup/launch/` has the
+canonical example of both.
+
 ## Network
 
 Fast DDS with a discovery server, no multicast. The middleware profiles restrict UDP to
