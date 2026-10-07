@@ -57,7 +57,7 @@ def _add_all(pl, with_shell):
             s = solid.mirror("XZ") if mirror else solid
             pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=colour, smooth_shading=False)
     if with_shell:
-        for nm, col in [('shell_skirt', '#2b2e31'), ('shell_upper', '#e6e7e4'), ('shell_belt', '#141618'), ('shell_cover', '#232629'), ('shell_panels', '#3b4044'), ('shell_light', '#eef3ff'), ('estop', '#b8282a')]:
+        for nm, col in [('shell_skirt', '#eeefed'), ('shell_upper', '#f2f3f1'), ('shell_belt', '#12151a'), ('shell_cover', '#232629'), ('shell_panels', '#e9eae8'), ('shell_light', '#6bb8f0'), ('shell_arch_flare', '#eeefed'), ('shell_arch_liner', '#1c1e20'), ('estop', '#b8282a')]:
             pl.add_mesh(_mesh(getattr(model, nm)()), color=col, smooth_shading=False)
 
 

@@ -22,12 +22,14 @@ TOL = 0.55
 
 COLOURS = {
     "frame": (0.70, 0.72, 0.74),
-    "shell_skirt": (0.17, 0.18, 0.19),
+    "shell_skirt": (0.93, 0.94, 0.93),
     "shell_upper": (0.90, 0.91, 0.89),
-    "shell_belt": (0.08, 0.09, 0.09),
+    "shell_belt": (0.07, 0.08, 0.10),
     "shell_cover": (0.14, 0.15, 0.16),
-    "shell_panels": (0.23, 0.25, 0.27),
-    "shell_light": (0.93, 0.95, 1.00),
+    "shell_panels": (0.91, 0.92, 0.91),
+    "shell_light": (0.42, 0.72, 0.95),
+    "shell_arch_flare": (0.93, 0.94, 0.93),
+    "shell_arch_liner": (0.11, 0.12, 0.13),
     "estop": (0.72, 0.16, 0.08),
     "battery": (0.17, 0.18, 0.20),
     "drivers": (0.09, 0.42, 0.18),
@@ -67,7 +69,8 @@ def build_scene():
     scene.add_geometry(_mesh(model.drivers(), "drivers"), node_name="drivers")
     scene.add_geometry(_mesh(model.electronics(), "electronics"), node_name="electronics")
     for nm in ("shell_skirt", "shell_upper", "shell_belt", "shell_cover",
-               "shell_panels", "shell_light", "estop"):
+               "shell_panels", "shell_light", "shell_arch_flare",
+               "shell_arch_liner", "estop"):
         scene.add_geometry(_mesh(getattr(model, nm)(), nm), node_name=nm)
 
     rails, cell, spring = model.suspension()

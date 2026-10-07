@@ -31,6 +31,8 @@ PARTS = {
     "shell_belt": model.shell_belt,
     "shell_cover": model.shell_cover,
     "shell_panels": model.shell_panels,
+    "shell_arch_flare": model.shell_arch_flare,
+    "shell_arch_liner": model.shell_arch_liner,
 }
 
 

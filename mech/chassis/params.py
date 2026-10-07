@@ -207,21 +207,23 @@ DECK_W = BODY_W - 160.0
 # the deck inset from the shell edge.  The parting line is the design line.
 
 SHELL_T = 1.5
-SHELL_SKIRT_TOP = 206.0              # just above the steering sweep
-SHELL_BELT_TOP = 220.0               # recessed band between skirt and upper
-SHELL_BELT_INSET = 13.0
-SHELL_BOTTOM_TUCK = 18.0             # bottom edge pulled in, kills the slab look
-SHELL_FILLET = 34.0
-SHELL_TOP_L = DECK_L + 6.0           # 710, must clear the deck
+SHELL_FILLET = 62.0                  # big soft radii; the body reads as one
+                                     # pebble, not a box with rounded corners
+SHELL_SKIRT_TOP = 206.0
+SHELL_BELT_TOP = 232.0               # 26 mm band, tall enough to be the graphic
+SHELL_BELT_OUT = 6.0                 # the band stands proud, it does not recess
+SHELL_BOTTOM_TUCK = 30.0             # strong tuck, so the body looks to float
+SHELL_TOP_L = DECK_L + 6.0
 
-BUMPER_Z = (112.0, 152.0)            # full perimeter rub rail
-BUMPER_OUT = 7.0
-HANDLE = (150.0, 34.0)               # recessed grip, two per side
-HANDLE_Z = 158.0
-VENT_SLOTS = 7
-COVER_T = 1.5                        # dark plate over the deck
+# Axiom language, after the service robots aboard the ship: one white volume,
+# no visible fasteners, and a single dark glossy band doing every job at once.
+# That band is the visor, the light strip and the bumper in one part, which is
+# why it is allowed to be the only interruption in the surface.
+ARCH_LIP = 4.0                       # rolled hem; kills the sheared edge quietly
+ARCH_LIP_W = 10.0
+COVER_T = 1.5
 COVER_INSET = 7.0
-BADGE = (130.0, 38.0)
+BODY_W_MAX = BODY_W + 2 * SHELL_BELT_OUT
 
 # How far the waist can pull in is set by the corner modules, not by taste: the
 # steering motor bracket reaches TRACK/2 + HOUSING_W/2 at MODULE_TOP_Z and the

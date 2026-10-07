@@ -292,10 +292,13 @@ def frame():
         ],
     )
 
-    top_l, top_w = P.BODY_L - 40, P.BODY_W - 160
+    top_l, top_w = P.DECK_L, P.DECK_W
+    # Rounded to sit inside the upper shell's own corner radius; a square deck
+    # corner pokes through the skin.
     top = (
         cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0))
         .box(top_l, top_w, P.TOP_PLATE_T, centered=(True, True, False))
+        .edges("|Z").fillet(40)
     )
     sw, sh = P.SERVICE_OPENING
     for cx in _bays():
@@ -418,10 +421,10 @@ def _upper_sections():
 
 
 def _belt_sections():
-    i = P.SHELL_BELT_INSET
+    o = P.SHELL_BELT_OUT
     return [
-        (P.BODY_L - 2 * i, P.BODY_W - 2 * i, P.SHELL_SKIRT_TOP - 2, _F - i),
-        (P.BODY_L - 2 * i, P.BODY_W - 2 * i, P.SHELL_BELT_TOP + 2, _F - i),
+        (P.BODY_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_SKIRT_TOP - 1, _F + o),
+        (P.BODY_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_BELT_TOP + 1, _F + o),
     ]
 
 
@@ -457,61 +460,82 @@ def _io_cut():
     )
 
 
-def _handles():
-    out = None
-    for sy in (1.0, -1.0):
-        for sx in (1.0, -1.0):
-            h = (
-                cq.Workplane("XY", origin=(sx * 215, sy * (P.BODY_W / 2 + 20), P.HANDLE_Z))
-                .box(P.HANDLE[0], 70, P.HANDLE[1], centered=(True, True, False))
-                .edges("|Y").fillet(P.HANDLE[1] / 2 - 1)
-            )
-            out = h if out is None else out.union(h)
-    return out
-
-
-def _vents():
-    out = None
-    for sy in (1.0, -1.0):
-        for i in range(P.VENT_SLOTS):
-            x = -150 + i * 22
-            v = (
-                cq.Workplane("XY", origin=(x, sy * (P.BODY_W / 2 + 20), 100))
-                .box(9, 70, 54, centered=(True, True, False))
-                .edges("|Y").fillet(4)
-            )
-            out = v if out is None else out.union(v)
-    return out
-
-
 def shell_skirt():
-    """Dark lower volume: wheel arches, rub rail, grips, vents, access doors."""
+    """Lower volume.  No grips, no vents, no rail: on an Axiom machine the
+    surface is unbroken except for the band.  Lifting points live on the deck,
+    which is already a dark inset plate and can take flush recessed eyes."""
     s = _skin(_skirt_sections(), P.SHELL_T).cut(_sweep_clearance())
     for c in _panel_cuts():
         s = s.cut(c)
-    s = s.cut(_handles()).cut(_vents())
 
-    z0, z1 = P.BUMPER_Z
-    o = P.BUMPER_OUT
-    rail = _skin([(P.BODY_L + 2 * o, P.BODY_W + 2 * o, z0, _F + o),
-                  (P.BODY_L + 2 * o, P.BODY_W + 2 * o, z1, _F + o)], o + P.SHELL_T)
-    return s.union(rail.cut(_sweep_clearance()).cut(_handles()))
+    return s
 
 
 def shell_upper():
     """Light upper volume, shoulder taper, badge and connector bezel."""
     s = _skin(_upper_sections(), P.SHELL_T).cut(_sweep_clearance()).cut(_io_cut())
-    badge = (
-        cq.Workplane("XY", origin=(P.BODY_L / 2 - 8, 0, 268))
-        .box(6, P.BADGE[0], P.BADGE[1], centered=(True, True, False))
-        .edges("|X").fillet(6)
-    )
-    return s.union(badge)
+    return s
+
+
+def _grown(sections, d):
+    return [(l + 2 * d, w + 2 * d, z, r + d) for l, w, z, r in sections]
+
+
+def shell_arch_flare():
+    """Rolled hem around each wheel opening.
+
+    A sheared 1.5 mm edge at shin height cuts people.  Rolling it fixes that,
+    and keeping the roll small and in body colour means the fix stays invisible
+    rather than becoming decoration.
+    """
+    d = P.ARCH_LIP
+    band = _loft(_grown(_skirt_sections(), d)).cut(_loft(_skirt_sections()))
+    out = None
+    for _, cx, cy in P.CORNERS:
+        ring = (
+            cq.Workplane("XY", origin=(cx, cy, 0))
+            .circle(P.SWEEP_CLEAR_R + P.ARCH_LIP_W)
+            .extrude(P.SHELL_SKIRT_TOP)
+        )
+        bore = (
+            cq.Workplane("XY", origin=(cx, cy, 0))
+            .circle(P.SWEEP_CLEAR_R)
+            .extrude(P.SHELL_SKIRT_TOP)
+        )
+        f = band.intersect(ring).cut(bore)
+        out = f if out is None else out.union(f)
+    return out
+
+
+def shell_arch_liner():
+    """Shroud between the wheel and the inside of the body."""
+    out = None
+    body = _loft(_skirt_sections())
+    for _, cx, cy in P.CORNERS:
+        # Stops at SWEEP_CLEAR_Z, not at the skirt top: above that nothing
+        # sweeps, the frame is not cut back, and a liner would run into it.
+        h = P.SWEEP_CLEAR_Z - P.GROUND_CLEARANCE
+        wall = (
+            cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
+            .circle(P.SWEEP_CLEAR_R)
+            .extrude(h)
+            .cut(cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
+                 .circle(P.SWEEP_CLEAR_R - 2.0)
+                 .extrude(h))
+        )
+        w = wall.intersect(body)
+        out = w if out is None else out.union(w)
+    return out
 
 
 def shell_belt():
-    """Recessed band between the two volumes: parting line and light strip."""
-    return _skin(_belt_sections(), P.SHELL_T).cut(_sweep_clearance())
+    """The one interruption in the surface, and it earns its place three times.
+
+    It is the parting line the skin needs anyway, the light strip, and a soft
+    bumper standing proud of the body, so nothing on this machine is there only
+    to be looked at.
+    """
+    return _skin(_belt_sections(), P.SHELL_BELT_OUT + P.SHELL_T).cut(_sweep_clearance())
 
 
 def shell_light():
@@ -521,19 +545,19 @@ def shell_light():
     read as one line instead of two stripes, and it gives the robot a visible
     state from any direction.
     """
-    i = P.SHELL_BELT_INSET
-    z = (P.SHELL_SKIRT_TOP + P.SHELL_BELT_TOP) / 2 - 5
+    i = -P.SHELL_BELT_OUT + 3.5
+    z = (P.SHELL_SKIRT_TOP + P.SHELL_BELT_TOP) / 2 - 6
     out = None
     for sy in (1.0, -1.0):
         seg = (
             cq.Workplane("XY", origin=(0, sy * (P.BODY_W / 2 - i + 1.5), z))
-            .box(430, 5, 10, centered=(True, True, False))
+            .box(470, 4, 12, centered=(True, True, False))
         )
         out = seg if out is None else out.union(seg)
     for sx in (1.0, -1.0):
         seg = (
             cq.Workplane("XY", origin=(sx * (P.BODY_L / 2 - i + 1.5), 0, z))
-            .box(5, 330, 10, centered=(True, True, False))
+            .box(4, 350, 12, centered=(True, True, False))
         )
         out = out.union(seg)
     return out
@@ -564,7 +588,8 @@ def shell_cover():
 
 def shell():
     """Everything fixed, for mass and clash checking."""
-    return shell_skirt().union(shell_upper()).union(shell_belt()).union(shell_cover())
+    s = shell_skirt().union(shell_upper()).union(shell_belt()).union(shell_cover())
+    return s.union(shell_arch_flare()).union(shell_arch_liner())
 
 
 def shell_panels():
@@ -639,12 +664,14 @@ def chassis(with_shell=True):
     asm.add(drivers(), name="drivers", color=cq.Color(0.10, 0.39, 0.10))
     asm.add(electronics(), name="electronics", color=cq.Color(0.33, 0.30, 0.36))
     if with_shell:
-        for nm, col in (("shell_skirt", (0.17, 0.18, 0.19)),
+        for nm, col in (("shell_skirt", (0.93, 0.94, 0.93)),
                         ("shell_upper", (0.90, 0.91, 0.89)),
-                        ("shell_belt", (0.08, 0.09, 0.09)),
+                        ("shell_belt", (0.07, 0.08, 0.10)),
                         ("shell_cover", (0.14, 0.15, 0.16)),
-                        ("shell_panels", (0.23, 0.25, 0.27)),
-                        ("shell_light", (0.93, 0.95, 1.00)),
+                        ("shell_panels", (0.91, 0.92, 0.91)),
+                        ("shell_light", (0.42, 0.72, 0.95)),
+                        ("shell_arch_flare", (0.93, 0.94, 0.93)),
+                        ("shell_arch_liner", (0.11, 0.12, 0.13)),
                         ("estop", (0.72, 0.16, 0.08))):
             asm.add(globals()[nm](), name=nm, color=cq.Color(*col))
     for name, x, y in P.CORNERS:
