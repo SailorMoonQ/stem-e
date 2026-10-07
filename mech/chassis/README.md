@@ -9,6 +9,7 @@ python render.py           # 着色渲染
 python massprops.py        # 质量与质心明细
 python compare_ranger.py   # 与 AgileX Ranger Air 的同工况对比
 python error_budget.py     # 四角称重的误差预算
+python height_floor.py     # 甲板高度被什么卡住，各条降高路线的代价
 python web_export.py       # 交互式 3D 查看器，模型内联进单个 HTML
 ```
 
