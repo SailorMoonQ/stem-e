@@ -238,7 +238,11 @@ def data_block(ax, x, y):
          % (P.SUSP_TRAVEL_NOMINAL, P.SUSP_TRAVEL_MECH, P.SUSP_RATE)),
         ("称重", "每角 2 个 %.0f kg，跨主销对称，8 个" % P.LOADCELL_RANGE_KG),
         ("驻车", "无机械刹车，四轮 X 型互锁"),
-        ("电池位置", "后舱 x=%.0f，前舱留给电控" % P.BATTERY_X),
+        ("电池位置", "后舱 x=%.0f，由车体后部抽出；前舱留给电控" % P.BATTERY_X),
+        ("过门", "4WS 横移通过，净宽 ≥750 时单边余量 %.0f" % ((750 - P.BODY_W) / 2)),
+        ("侧向作业", "硬件按 %.0f 定尺寸；实际范围由动态包络实时给出"
+         % P.ARM_REACH_LAT),
+        ("急停", "%.1f m/s2，Cat-1 受控停机，禁止短接相线" % P.ESTOP_DECEL),
     ]
     h = 6.6 * len(rows) + 8
     ax.add_patch(Rectangle((x, y), 176, h, fill=False, lw=LW_OUT, ec="k"))

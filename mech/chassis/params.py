@@ -50,10 +50,16 @@ DRIVER_HOLE_X, DRIVER_HOLE_Y = 60.5, 44.0
 # Chassis top level
 # --------------------------------------------------------------------------
 
-WHEELBASE = 700.0            # X, front to rear kingpin axis distance
-TRACK = 500.0                # Y, left to right kingpin axis distance
+# Footprint is solved from the duty case, not styled; see sizing.py.
+# Width is capped by the door: 800 rough opening gives under 750 clear, and
+# 4WS crabs through sideways, so the narrow side is what has to fit.
+WHEELBASE = 560.0            # X, front to rear kingpin axis distance
+TRACK = 420.0                # Y, left to right kingpin axis distance
 
-WHEEL_SWEEP_OD = 180.0       # tire OD plus clearance, governs corner cut-outs
+# The body has to be at least the footprint plus the steering sweep, and the
+# sweep is whatever the model actually cuts, so derive one from the other
+# rather than carrying two numbers that can disagree.
+WHEEL_SWEEP_OD = 184.0       # == 2 * SWEEP_CLEAR_R, see below
 BODY_L = WHEELBASE + WHEEL_SWEEP_OD
 BODY_W = TRACK + WHEEL_SWEEP_OD
 
@@ -131,10 +137,10 @@ SUSP_CELLS_PER_CORNER = 2
 # Everything below YOKE_SWEEP_Z turns with the wheel.  No frame or shell
 # material may enter a cylinder of this radius about any kingpin axis.
 YOKE_SWEEP_R = 74.6          # yoke corner, max radius about the kingpin
-SWEEP_CLEAR_R = 92.0         # governed by the tire, 85.5 plus clearance
+SWEEP_CLEAR_R = WHEEL_SWEEP_OD / 2   # governed by the tire, 85.5 plus clearance
 SWEEP_CLEAR_Z = 200.0
 
-SPINE_Y = 173.0              # side rail plate centreline, carries the MGN rails
+SPINE_Y = TRACK / 2 - 75.0   # side rail plate centreline, carries the MGN rails
 SPINE_T = 8.0                # the box is ~25000x stiffer than the load needs;
                              # see frame_budget.py before thickening this again
 CROSS_X = 155.0              # cross members frame the lift column interface, so
@@ -155,8 +161,8 @@ ALU_DENSITY = 2.70e-6        # kg/mm^3, 6061-T6
 
 BASE_PLATE_T = 6.0
 BASE_PLATE_Z0 = 70.0         # 10 mm above the skirt; the old 100 was dead air
-BASE_PLATE_L = 640.0
-BASE_PLATE_W = 440.0
+BASE_PLATE_L = BODY_L - 120.0
+BASE_PLATE_W = 2 * SPINE_Y + 24.0
 
 CORNER_BRACKET_T = 12.0
 TOP_PLATE_T = 6.0
@@ -177,11 +183,18 @@ LIGHTEN_D = 64.0
 WEB_HOLE_D = 100.0           # truss holes in the spines and cross members
 WEB_HOLE_PITCH = 150.0
 
-BATTERY_L, BATTERY_W, BATTERY_H = 260.0, 180.0, 210.0   # 24V 30Ah LiFePO4
+# 24V 30Ah LiFePO4, laid across the bay: the bay is wider than it is long
+# once the body shortens, so the pack turns 90 degrees.  Not bought yet, so
+# treat this as the envelope to buy against; sizing.py prints the bay.
+BATTERY_L, BATTERY_W, BATTERY_H = 180.0, 260.0, 210.0
 BATTERY_MASS = 8.0
-BATTERY_X = -290.0           # rear bay, outboard of the aft cross member.
-                             # Moving it aft also buys forward tipping margin.
-SERVICE_OPENING = (220.0, 200.0)   # deck cut-out over each equipment bay
+BATTERY_X = -(CROSS_X + SPINE_T / 2 + (BODY_L / 2 - 10.0)) / 2   # rear bay centre
+# Deck cut-out over each equipment bay.  Sized to stay clear of the cross
+# member and the spines, so it never interrupts a load path.  It is for
+# electronics access: the battery is wider than the gap between the spines and
+# comes out of the back of the shell instead.
+_BAY_L = BODY_L / 2 - 10.0 - (CROSS_X + SPINE_T / 2)
+SERVICE_OPENING = (_BAY_L - 24.0, 2 * SPINE_Y - 40.0)
 
 # --------------------------------------------------------------------------
 # Mass budget used for the stability check
@@ -201,11 +214,16 @@ UPPER_BODY_MASS = 40.0
 UPPER_BODY_COG_Z = 0.80 * 1000.0
 PAYLOAD_MASS = 5.0
 ARM_REACH_FWD = 700.0
-ARM_REACH_LAT = 450.0
+ARM_REACH_LAT = 350.0        # hardware sizing case only; the real limit is the
+                             # dynamic envelope in src/core/stem_safety
 PAYLOAD_Z = 1400.0
 
-ESTOP_DECEL = 1.5            # m/s^2, commanded emergency ramp
-LATERAL_ACCEL = 1.0          # m/s^2
+ESTOP_DECEL = 1.0            # m/s^2, commanded emergency ramp.  This number is
+                             # only valid because the stop circuit is Cat-1 and
+                             # never shorts the motor phases; see the ADR.
+                             # Shorting a direct drive H65 gives about 9.9 m/s^2,
+                             # which tips the robot at any wheelbase we would build.
+LATERAL_ACCEL = 0.7          # m/s^2
 FLOOR_SLOPE_DEG = 3.0
 
 # --------------------------------------------------------------------------
