@@ -63,7 +63,10 @@ WHEEL_SWEEP_OD = 184.0       # == 2 * SWEEP_CLEAR_R, see below
 BODY_L = WHEELBASE + WHEEL_SWEEP_OD
 BODY_W = TRACK + WHEEL_SWEEP_OD
 
-GROUND_CLEARANCE = 60.0      # skirt underside
+# Raised from 60: the deck is at its floor, so the only way to make the body
+# read thinner is to show more wheel under it.  Costs 2.9 mm of chassis cog
+# height and nothing else, and more clearance is never worse indoors.
+GROUND_CLEARANCE = 80.0      # skirt underside
 DECK_Z = 344.0               # top deck upper face, lift column interface
                              # set so the deck underside clears MODULE_TOP_Z by
                              # more than SUSP_TRAVEL_MECH on full compression
@@ -160,7 +163,7 @@ SHELL_DENSITY = 1.20e-6      # kg/mm^3
 ALU_DENSITY = 2.70e-6        # kg/mm^3, 6061-T6
 
 BASE_PLATE_T = 6.0
-BASE_PLATE_Z0 = 70.0         # 10 mm above the skirt; the old 100 was dead air
+BASE_PLATE_Z0 = GROUND_CLEARANCE + 10.0   # just above the skirt
 BASE_PLATE_L = BODY_L - 120.0
 BASE_PLATE_W = 2 * SPINE_Y + 24.0
 
@@ -178,6 +181,14 @@ COLUMN_DOUBLER = 260.0       # doubler under the deck; local thickness goes to
 COLUMN_DOUBLER_T = 6.0       # 12 mm, which is an 8x cut in local plate bending
 TOP_PLATE_Z0 = DECK_Z - TOP_PLATE_T
 
+# Side bays: between the spines and the body sides, between the two sweep
+# circles.  14.3 L each and previously empty, which is why the electronics
+# hung under the deck.  Boxes bolt to the outboard face of each spine, so no
+# extra floor structure is needed.
+ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
+ELEC_Z0 = BASE_PLATE_Z0 + 14.0
+ELEC_MASS = 2.0
+
 LIGHTEN_PITCH = 78.0
 LIGHTEN_D = 64.0
 WEB_HOLE_D = 100.0           # truss holes in the spines and cross members
@@ -186,7 +197,10 @@ WEB_HOLE_PITCH = 150.0
 # 24V 30Ah LiFePO4, laid across the bay: the bay is wider than it is long
 # once the body shortens, so the pack turns 90 degrees.  Not bought yet, so
 # treat this as the envelope to buy against; sizing.py prints the bay.
-BATTERY_L, BATTERY_W, BATTERY_H = 180.0, 260.0, 210.0
+# The bay is waisted, not rectangular: the two rear steering sweep circles cut
+# into it and pinch the clear width from 262 down to 236 at the axle line.  The
+# pack has to fit the narrow point, not the wide one.  build.py checks this.
+BATTERY_L, BATTERY_W, BATTERY_H = 190.0, 220.0, 200.0
 BATTERY_MASS = 8.0
 BATTERY_X = -(CROSS_X + SPINE_T / 2 + (BODY_L / 2 - 10.0)) / 2   # rear bay centre
 # Deck cut-out over each equipment bay.  Sized to stay clear of the cross

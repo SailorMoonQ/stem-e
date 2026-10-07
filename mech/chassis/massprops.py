@@ -28,6 +28,7 @@ BOUGHT_MODELLED = {
     "steer_motor": (4, P.STEER_MASS),
     "battery": (1, P.BATTERY_MASS),
     "drivers": (1, 4 * 0.09),
+    "electronics": (1, P.ELEC_MASS),
 }
 
 # name -> (mass kg, z mm) for items not modelled, placed by hand
@@ -36,7 +37,6 @@ LUMPED = {
     "rail_carriages": (4 * 0.35, 230.0),
     "springs_loadcells": (4 * 0.45, 290.0),
     "wiring_connectors": (1.6, 150.0),
-    "compute_dcdc_estop": (2.0, 330.0),
 }
 
 

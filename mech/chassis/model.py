@@ -394,6 +394,24 @@ def battery():
     )
 
 
+def electronics():
+    """Compute, DC-DC and the stop circuit, in the side bays.
+
+    These used to be a lump in the mass table with no geometry, hanging under
+    the deck.  Down here they sit 180 mm lower and get checked for clashes
+    like everything else.
+    """
+    out = None
+    for sy in (1.0, -1.0):
+        box = (
+            cq.Workplane("XY", origin=(0, sy * (P.SPINE_Y + P.SPINE_T / 2 + P.ELEC_W / 2),
+                                       P.ELEC_Z0))
+            .box(P.ELEC_L, P.ELEC_W, P.ELEC_H, centered=(True, True, False))
+        )
+        out = box if out is None else out.union(box)
+    return out
+
+
 def drivers():
     """One DM6540 per corner, flat on the inboard face of the nearest spine.
 
@@ -417,6 +435,7 @@ def chassis(with_shell=True):
     asm.add(frame(), name="frame", color=ALU)
     asm.add(battery(), name="battery", color=cq.Color(0.20, 0.20, 0.22))
     asm.add(drivers(), name="drivers", color=cq.Color(0.10, 0.39, 0.10))
+    asm.add(electronics(), name="electronics", color=cq.Color(0.33, 0.30, 0.36))
     if with_shell:
         asm.add(shell(), name="shell", color=cq.Color(0.2, 0.45, 0.75, 0.35))
     for name, x, y in P.CORNERS:

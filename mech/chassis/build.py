@@ -49,7 +49,8 @@ def interference():
     findings = []
     frame = model.frame()
     shell = model.shell()
-    statics = {"frame": frame, "shell": shell, "battery": model.battery(), "drivers": model.drivers()}
+    statics = {"frame": frame, "shell": shell, "battery": model.battery(),
+               "drivers": model.drivers(), "electronics": model.electronics()}
 
     movers = {
         "wheel": model.hub_motor(),
@@ -79,6 +80,18 @@ def interference():
     v = _vol(frame.intersect(shell))
     if v > 1.0:
         findings.append(("--", "frame", "shell", v))
+
+    # Nothing fixed to the chassis may sit inside a steering sweep cylinder.
+    # The frame and shell have it cut out of them, so they pass by
+    # construction; everything else has to be checked, or a wheel finds it at
+    # full lock.
+    sweep = model._sweep_clearance()
+    for sname, stat in statics.items():
+        if sname in ("frame", "shell"):
+            continue
+        v = _vol(stat.intersect(sweep))
+        if v > 1.0:
+            findings.append(("--", sname, "INSIDE_STEERING_SWEEP", v))
     gap = P.TOP_PLATE_Z0 - P.MODULE_TOP_Z
     if gap < P.SUSP_TRAVEL_MECH:
         findings.append(("--", "deck underside", "module top on bump", gap))
