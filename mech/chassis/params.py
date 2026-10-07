@@ -224,13 +224,41 @@ MASS = {
     "suspension": 4 * 1.2,
     "electronics": 2.0,
 }
-UPPER_BODY_MASS = 40.0
-UPPER_BODY_COG_Z = 0.80 * 1000.0
+# --------------------------------------------------------------------------
+# Upper body, estimated 2026-10-07.  Inputs given: robot 1.4 to 1.6 m tall,
+# arm span 1.4 to 1.5 m, compute and switch in the chest.  Itemised so each
+# line can be argued with and replaced as the upper body is actually designed.
+# This is the largest remaining uncertainty in the whole size chain.
+# --------------------------------------------------------------------------
+
+ARM_SPAN = 1450.0
+SHOULDER_W = 400.0
+ARM_LEN = (ARM_SPAN - SHOULDER_W) / 2        # 525, shoulder to fingertip
+SHOULDER_Z = 1350.0                          # lift fully extended, worst case
+
+UPPER_BODY = {                               # name: (mass kg, cog height mm)
+    "lift_column": (14.0, 800.0),            # 3 stage, rails + screw + motor
+    "chest": (8.0, 1150.0),                  # structure, compute, switch, PDU
+    "arms": (13.0, 1300.0),                  # two arms incl. grippers
+    "head": (2.0, 1480.0),                   # cameras and pan tilt
+}
+UPPER_BODY_MASS = sum(m for m, _ in UPPER_BODY.values())
+UPPER_BODY_COG_Z = sum(m * z for m, z in UPPER_BODY.values()) / UPPER_BODY_MASS
+ARM_MASS = UPPER_BODY["arms"][0]
+
 PAYLOAD_MASS = 5.0
-ARM_REACH_FWD = 700.0
-ARM_REACH_LAT = 350.0        # hardware sizing case only; the real limit is the
-                             # dynamic envelope in src/core/stem_safety
-PAYLOAD_Z = 1400.0
+PAYLOAD_Z = SHOULDER_Z
+
+# Reach is geometry, not a guess: it falls out of the arm span.
+ARM_REACH_FWD = ARM_LEN + 25                 # 550, payload offset from centre
+ARM_REACH_LAT = SHOULDER_W / 2 + ARM_LEN     # 725, one fingertip from centre
+LAT_ARM_FRACTION = 0.5                       # one arm sideways; both arms to
+                                             # one side is left to the envelope
+LAT_DESIGN_REACH = 400.0                     # comfortable working reach while
+                                             # crabbing.  Full 725 reach and
+                                             # full crab acceleration never
+                                             # happen together, so sizing on
+                                             # both at once double counts.
 
 ESTOP_DECEL = 1.0            # m/s^2, commanded emergency ramp.  This number is
                              # only valid because the stop circuit is Cat-1 and

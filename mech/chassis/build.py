@@ -122,38 +122,53 @@ def stability():
     g = 9.81
     curb, curb_z, _, curb_x = massprops.chassis_mass_properties()
     total = curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS
-    arms = 12.0
-    column_head = P.UPPER_BODY_MASS - arms
+    arms = P.ARM_MASS
 
     cog_z = (
         curb * curb_z
-        + column_head * P.UPPER_BODY_COG_Z
-        + arms * 1200.0
+        + P.UPPER_BODY_MASS * P.UPPER_BODY_COG_Z
         + P.PAYLOAD_MASS * P.PAYLOAD_Z
     ) / total
 
     # the chassis own fore and aft offset counts against the arm reach
     fwd_static = (curb * curb_x + arms * P.ARM_REACH_FWD / 2
                   + P.PAYLOAD_MASS * P.ARM_REACH_FWD) / total
-    lat_static = (arms * P.ARM_REACH_LAT / 2 + P.PAYLOAD_MASS * P.ARM_REACH_LAT) / total
+    lat_static = (arms * P.LAT_ARM_FRACTION * P.ARM_REACH_LAT / 2
+                  + P.PAYLOAD_MASS * P.ARM_REACH_LAT) / total
     slope = cog_z * math.tan(math.radians(P.FLOOR_SLOPE_DEG))
 
-    fwd_need = fwd_static + cog_z * P.ESTOP_DECEL / g + slope
-    lat_need = lat_static + cog_z * P.LATERAL_ACCEL / g + slope
+    # Full reach and full acceleration do not happen together sideways, so
+    # sizing on both at once double counts; the envelope trades one for the
+    # other.  Report the two cases the hardware actually has to carry: the
+    # static case at the arm's full reach, and the design operating point.
+    lat_design_static = (arms * P.LAT_ARM_FRACTION * P.LAT_DESIGN_REACH / 2
+                         + P.PAYLOAD_MASS * P.LAT_DESIGN_REACH) / total
 
-    return {
+    cases = {
+        "fwd_static": (fwd_static + slope, P.WHEELBASE / 2),
+        "fwd_estop": (fwd_static + cog_z * P.ESTOP_DECEL / g + slope, P.WHEELBASE / 2),
+        "lat_static": (lat_static + slope, P.TRACK / 2),
+        "lat_crab": (lat_design_static + cog_z * P.LATERAL_ACCEL / g + slope,
+                     P.TRACK / 2),
+    }
+    out = {
         "curb_kg": curb,
         "curb_cog_mm": curb_z,
         "curb_cog_x_mm": curb_x,
         "total_kg": total,
         "cog_height_mm": cog_z,
-        "fwd_demand_mm": fwd_need,
-        "lat_demand_mm": lat_need,
-        "fwd_arm_mm": P.WHEELBASE / 2,
-        "lat_arm_mm": P.TRACK / 2,
-        "fwd_sf": (P.WHEELBASE / 2) / fwd_need,
-        "lat_sf": (P.TRACK / 2) / lat_need,
     }
+    for name, (need, arm) in cases.items():
+        out[name + "_demand_mm"] = need
+        out[name + "_sf"] = arm / need
+    out["fwd_demand_mm"] = cases["fwd_estop"][0]
+    out["lat_demand_mm"] = max(cases["lat_static"][0], cases["lat_crab"][0])
+    out["fwd_arm_mm"] = P.WHEELBASE / 2
+    out["lat_arm_mm"] = P.TRACK / 2
+    out["fwd_sf"] = cases["fwd_estop"][1] / cases["fwd_estop"][0]
+    out["lat_sf"] = min(cases["lat_static"][1] / cases["lat_static"][0],
+                        cases["lat_crab"][1] / cases["lat_crab"][0])
+    return out
 
 
 def export():

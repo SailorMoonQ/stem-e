@@ -16,7 +16,7 @@ import massprops
 import params as P
 
 G = 9.81
-ARM_MASS = 12.0
+ARM_MASS = P.ARM_MASS
 
 RANGER_AIR = {
     "name": "AgileX Ranger Air",
@@ -38,16 +38,15 @@ RANGER_AIR = {
 def tipping(curb_kg, curb_cog_mm, wheelbase, track):
     """Margin left over when the STEM-E upper body sits on this footprint."""
     total = curb_kg + P.UPPER_BODY_MASS + P.PAYLOAD_MASS
-    column_head = P.UPPER_BODY_MASS - ARM_MASS
     cog_z = (
         curb_kg * curb_cog_mm
-        + column_head * P.UPPER_BODY_COG_Z
-        + ARM_MASS * 1200.0
+        + P.UPPER_BODY_MASS * P.UPPER_BODY_COG_Z
         + P.PAYLOAD_MASS * P.PAYLOAD_Z
     ) / total
     slope = cog_z * math.tan(math.radians(P.FLOOR_SLOPE_DEG))
     fwd = (ARM_MASS * P.ARM_REACH_FWD / 2 + P.PAYLOAD_MASS * P.ARM_REACH_FWD) / total
-    lat = (ARM_MASS * P.ARM_REACH_LAT / 2 + P.PAYLOAD_MASS * P.ARM_REACH_LAT) / total
+    lat = (ARM_MASS * P.LAT_ARM_FRACTION * P.ARM_REACH_LAT / 2
+           + P.PAYLOAD_MASS * P.ARM_REACH_LAT) / total
     fwd_need = fwd + cog_z * P.ESTOP_DECEL / G + slope
     lat_need = lat + cog_z * P.LATERAL_ACCEL / G + slope
     return {

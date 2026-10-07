@@ -20,8 +20,8 @@ import params as P
 G = 9.81
 SF_TARGET = 2.0
 SWEEP = P.WHEEL_SWEEP_OD             # body is always footprint plus this
-ARM_MASS = 12.0
-ARM_COG_Z = 1200.0
+ARM_MASS = P.ARM_MASS
+UPPER_COG_Z = P.UPPER_BODY_COG_Z
 
 # Reference point: what the built model weighs at its current size.
 REF_L, REF_W = 880.0, 680.0
@@ -45,17 +45,17 @@ def chassis_mass(body_l, body_w):
     return FIXED_KG + frame + shell, frame, shell
 
 
-def solve(upper_kg=40.0, payload_kg=5.0, reach_fwd=700.0, reach_lat=450.0,
-          payload_z=1400.0, upper_cog_z=800.0, estop=1.5, lateral=1.0,
-          sf=SF_TARGET):
+def solve(upper_kg=P.UPPER_BODY_MASS, payload_kg=P.PAYLOAD_MASS,
+          reach_fwd=P.ARM_REACH_FWD, reach_lat=P.LAT_DESIGN_REACH,
+          payload_z=P.PAYLOAD_Z, upper_cog_z=P.UPPER_BODY_COG_Z,
+          estop=P.ESTOP_DECEL, lateral=P.LATERAL_ACCEL, sf=SF_TARGET):
     """Iterate footprint and chassis mass until they agree."""
     body_l, body_w = REF_L, REF_W
     for _ in range(40):
         curb, _, _ = chassis_mass(body_l, body_w)
         total = curb + upper_kg + payload_kg
-        column = upper_kg - ARM_MASS
-        cog_z = (curb * CHASSIS_COG_Z + column * upper_cog_z
-                 + ARM_MASS * ARM_COG_Z + payload_kg * payload_z) / total
+        cog_z = (curb * CHASSIS_COG_Z + upper_kg * upper_cog_z
+                 + payload_kg * payload_z) / total
         cog_x = curb * (P.BATTERY_X * body_l / REF_L) * (8.0 / curb) / total * curb / curb
         # battery is the only deliberate fore and aft offset
         cog_x = 8.0 * (P.BATTERY_X * body_l / REF_L) / total
@@ -63,7 +63,7 @@ def solve(upper_kg=40.0, payload_kg=5.0, reach_fwd=700.0, reach_lat=450.0,
 
         fwd = (cog_x * total + ARM_MASS * reach_fwd / 2
                + payload_kg * reach_fwd) / total + cog_z * estop / G + slope
-        lat = (ARM_MASS * reach_lat / 2
+        lat = (ARM_MASS * P.LAT_ARM_FRACTION * reach_lat / 2
                + payload_kg * reach_lat) / total + cog_z * lateral / G + slope
 
         wb, tr = 2 * sf * fwd, 2 * sf * lat
@@ -110,7 +110,7 @@ def door_fit(body_w, clear):
 
 
 CASES = [
-    ("现状（已建） 880 x 680", dict(_fixed=(700.0, 500.0))),
+    ("已建 744 x 604", dict(_fixed=(P.WHEELBASE, P.TRACK))),
     ("同任务书按 SF 2.0 重解", {}),
     ("急停 1.0，其余不动", dict(estop=1.0, lateral=0.7)),
     ("--", None),
