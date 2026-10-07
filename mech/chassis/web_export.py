@@ -22,9 +22,13 @@ TOL = 0.55
 
 COLOURS = {
     "frame": (0.70, 0.72, 0.74),
-    "shell": (0.30, 0.52, 0.72),
-    "shell_panels": (0.42, 0.58, 0.74),
-    "estop": (0.72, 0.16, 0.14),
+    "shell_skirt": (0.17, 0.18, 0.19),
+    "shell_upper": (0.90, 0.91, 0.89),
+    "shell_belt": (0.08, 0.09, 0.09),
+    "shell_cover": (0.14, 0.15, 0.16),
+    "shell_panels": (0.23, 0.25, 0.27),
+    "shell_light": (0.93, 0.95, 1.00),
+    "estop": (0.72, 0.16, 0.08),
     "battery": (0.17, 0.18, 0.20),
     "drivers": (0.09, 0.42, 0.18),
     "electronics": (0.33, 0.30, 0.36),
@@ -62,9 +66,9 @@ def build_scene():
     scene.add_geometry(_mesh(model.battery(), "battery"), node_name="battery")
     scene.add_geometry(_mesh(model.drivers(), "drivers"), node_name="drivers")
     scene.add_geometry(_mesh(model.electronics(), "electronics"), node_name="electronics")
-    scene.add_geometry(_mesh(model.shell(), "shell", 0.26), node_name="shell")
-    scene.add_geometry(_mesh(model.shell_panels(), "shell_panels", 0.55), node_name="shell_panels")
-    scene.add_geometry(_mesh(model.estop(), "estop"), node_name="estop")
+    for nm in ("shell_skirt", "shell_upper", "shell_belt", "shell_cover",
+               "shell_panels", "shell_light", "estop"):
+        scene.add_geometry(_mesh(getattr(model, nm)(), nm), node_name=nm)
 
     rails, cell, spring = model.suspension()
     turning = [("wheel", model.hub_motor()), ("yoke", model.steering_yoke()),

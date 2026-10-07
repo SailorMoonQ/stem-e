@@ -145,8 +145,12 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     ['frame','车架','#b3b8bc','1'],
     ['battery','电池','#2c2e33','1'],
     ['drivers','驱动器 DM6540','#176b2e','x4'],
-    ['shell','外壳 1.5mm 铝板','#4d85b8','1'],
-    ['shell_panels','可拆面板','#6b93bd','-'],
+    ['shell_skirt','下裙','#2b2e31','1'],
+    ['shell_upper','上壳','#d8d9d6','1'],
+    ['shell_belt','腰线','#141618','1'],
+    ['shell_cover','甲板盖','#232629','1'],
+    ['shell_panels','可拆面板','#3b4044','-'],
+    ['shell_light','灯带','#cfd8ea','2'],
     ['estop','急停','#b8282a','1']
   ];
 
@@ -358,9 +362,10 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
       var byPart = vstate[v].byPart;
       Object.keys(byPart).forEach(function(k){
         var dim = isolated !== null && k !== isolated;
-        var base = (k === 'shell') ? 0.3 : 1;
+        var base = 1;
         byPart[k].forEach(function(o){
-          o.visible = (k !== 'shell') || shellOn || isolated === 'shell';
+          var isShell = k.indexOf('shell') === 0 || k === 'estop';
+        o.visible = !isShell || shellOn || isolated === k;
           o.material.transparent = dim || base < 1;
           o.material.opacity = dim ? 0.06 : base;
           o.material.depthWrite = !dim && base === 1;

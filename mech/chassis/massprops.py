@@ -19,7 +19,10 @@ MACHINED = {
     "bearing_housing": (4, P.ALU_DENSITY),
     "steer_bracket": (4, P.ALU_DENSITY),
     "frame": (1, P.ALU_DENSITY),
-    "shell": (1, P.SHELL_DENSITY),
+    "shell_skirt": (1, P.SHELL_DENSITY),
+    "shell_upper": (1, P.SHELL_DENSITY),
+    "shell_belt": (1, P.SHELL_DENSITY),
+    "shell_cover": (1, P.SHELL_DENSITY),
     "shell_panels": (1, P.SHELL_DENSITY),
     "estop": (1, P.ALU_DENSITY),
 }

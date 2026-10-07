@@ -201,14 +201,33 @@ DECK_W = BODY_W - 160.0
 # side it is near straight, which is what reads as hips rather than a cart.
 # --------------------------------------------------------------------------
 
+# Three volumes stacked, after the Ranger Air language: a dark skirt carrying
+# the wheel arches, a recessed belt that is both the parting line and the light
+# strip, a light upper shell with a strong shoulder taper, and a dark cover on
+# the deck inset from the shell edge.  The parting line is the design line.
+
 SHELL_T = 1.5
+SHELL_SKIRT_TOP = 206.0              # just above the steering sweep
+SHELL_BELT_TOP = 220.0               # recessed band between skirt and upper
+SHELL_BELT_INSET = 13.0
+SHELL_BOTTOM_TUCK = 18.0             # bottom edge pulled in, kills the slab look
+SHELL_FILLET = 34.0
 SHELL_TOP_L = DECK_L + 6.0           # 710, must clear the deck
 
-# How far the waist can pull in is set by the corner modules, not by taste:
-# the steering motor bracket reaches TRACK/2 + HOUSING_W/2 at MODULE_TOP_Z,
-# and the skin has to stay outside it.  Derived so the taper can never quietly
-# grow back into a module.
-_SHELL_F = (MODULE_TOP_Z - GROUND_CLEARANCE) / (DECK_Z - GROUND_CLEARANCE)
+BUMPER_Z = (112.0, 152.0)            # full perimeter rub rail
+BUMPER_OUT = 7.0
+HANDLE = (150.0, 34.0)               # recessed grip, two per side
+HANDLE_Z = 158.0
+VENT_SLOTS = 7
+COVER_T = 1.5                        # dark plate over the deck
+COVER_INSET = 7.0
+BADGE = (130.0, 38.0)
+
+# How far the waist can pull in is set by the corner modules, not by taste: the
+# steering motor bracket reaches TRACK/2 + HOUSING_W/2 at MODULE_TOP_Z and the
+# skin has to stay outside it.  Derived so the taper can never quietly grow
+# back into a module.
+_SHELL_F = (MODULE_TOP_Z - SHELL_BELT_TOP) / (DECK_Z - SHELL_BELT_TOP)
 _SHELL_NEED = TRACK / 2 + HOUSING_W / 2 + 5.0
 SHELL_TOP_W = BODY_W - (BODY_W - 2 * _SHELL_NEED) / _SHELL_F
 ESTOP_OD = 40.0
