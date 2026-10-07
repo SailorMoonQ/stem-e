@@ -287,8 +287,7 @@ def frame():
     base = _lighten(
         base, P.BASE_PLATE_Z0, P.BASE_PLATE_T, P.BASE_PLATE_L / 2, P.BASE_PLATE_W / 2,
         keepouts=[
-            (P.BATTERY_X - P.BATTERY_L / 2 - 20, P.BATTERY_X + P.BATTERY_L / 2 + 20,
-             -P.BATTERY_W / 2 - 20, P.BATTERY_W / 2 + 20),
+            (P.REAR_BAY_X - 130, P.REAR_BAY_X + 130, -150, 150),
             (-P.CROSS_X - 30, P.CROSS_X + 30, -P.SPINE_Y, P.SPINE_Y),
         ],
     )
@@ -386,12 +385,20 @@ def shell():
     return body.cut(inner).cut(_sweep_clearance())
 
 
+def _boxes(packs, l, w, h, z0):
+    out = None
+    for x, y in packs:
+        b = (
+            cq.Workplane("XY", origin=(x, y, z0))
+            .box(l, w, h, centered=(True, True, False))
+        )
+        out = b if out is None else out.union(b)
+    return out
+
+
 def battery():
-    """Rear bay, outboard of the aft cross member and under a service opening."""
-    return (
-        cq.Workplane("XY", origin=(P.BATTERY_X, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
-        .box(P.BATTERY_L, P.BATTERY_W, P.BATTERY_H, centered=(True, True, False))
-    )
+    """One pack in the aft bay, or two in the belly flanks.  See params."""
+    return _boxes(P.BATTERY_PACKS, P.BATTERY_L, P.BATTERY_W, P.BATTERY_H, P.BATTERY_Z0)
 
 
 def electronics():
@@ -401,15 +408,7 @@ def electronics():
     the deck.  Down here they sit 180 mm lower and get checked for clashes
     like everything else.
     """
-    out = None
-    for sy in (1.0, -1.0):
-        box = (
-            cq.Workplane("XY", origin=(0, sy * (P.SPINE_Y + P.SPINE_T / 2 + P.ELEC_W / 2),
-                                       P.ELEC_Z0))
-            .box(P.ELEC_L, P.ELEC_W, P.ELEC_H, centered=(True, True, False))
-        )
-        out = box if out is None else out.union(box)
-    return out
+    return _boxes(P.ELEC_PACKS, P.ELEC_L, P.ELEC_W, P.ELEC_H, P.ELEC_Z0)
 
 
 def drivers():

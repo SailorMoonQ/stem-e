@@ -19,7 +19,7 @@ import model
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "export")
+OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 PARTS = {
     "steering_yoke": model.steering_yoke,
     "kingpin_tube": model.kingpin_tube,

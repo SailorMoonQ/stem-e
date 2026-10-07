@@ -22,7 +22,7 @@ import massprops
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "export")
+OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 
 A3 = (420.0, 297.0)
 SCALE = 1 / 6.0
@@ -96,10 +96,17 @@ def plan(ax, ox, oy):
     ax.add_patch(Rectangle((ox - bp[0] / 2, oy - bp[1] / 2), bp[0], bp[1],
                            fill=False, lw=LW_THIN, ec="k", ls=(0, (4, 2))))
     bt = (P.BATTERY_L * s, P.BATTERY_W * s)
-    bx = ox + P.BATTERY_X * s
-    ax.add_patch(Rectangle((bx - bt[0] / 2, oy - bt[1] / 2), bt[0], bt[1],
-                           fill=False, lw=LW_THIN, ec="k"))
-    ax.text(bx, oy, "电池 24V 30Ah", ha="center", va="center", fontsize=FSS)
+    for i, (px, py) in enumerate(P.BATTERY_PACKS):
+        bx, by = ox + px * s, oy + py * s
+        ax.add_patch(Rectangle((bx - bt[0] / 2, by - bt[1] / 2), bt[0], bt[1],
+                               fill=False, lw=LW_THIN, ec="k"))
+        if i == 0:
+            ax.text(bx, by, "电池", ha="center", va="center", fontsize=FSS)
+    for px, py in P.ELEC_PACKS:
+        ax.add_patch(Rectangle((ox + px * s - P.ELEC_L * s / 2,
+                                oy + py * s - P.ELEC_W * s / 2),
+                               P.ELEC_L * s, P.ELEC_W * s,
+                               fill=False, lw=LW_THIN, ec="k", ls=(0, (3, 2))))
     for sx in (-1.0, 1.0):
         cx = ox + sx * P.CROSS_X * s
         ax.plot([cx, cx], [oy - P.SPINE_Y * s, oy + P.SPINE_Y * s],
@@ -238,7 +245,11 @@ def data_block(ax, x, y):
          % (P.SUSP_TRAVEL_NOMINAL, P.SUSP_TRAVEL_MECH, P.SUSP_RATE)),
         ("称重", "每角 2 个 %.0f kg，跨主销对称，8 个" % P.LOADCELL_RANGE_KG),
         ("驻车", "无机械刹车，四轮 X 型互锁"),
-        ("电池位置", "后舱 x=%.0f，由车体后部抽出；前舱留给电控" % P.BATTERY_X),
+        ("电池方案", "%s" % ("后舱单包 %.0fx%.0fx%.0f，车尾抽出"
+                  % (P.BATTERY_L, P.BATTERY_W, P.BATTERY_H)
+                  if P.BATTERY_LAYOUT == "rear" else
+                  "腹部两侧各一包 %.0fx%.0fx%.0f，侧门更换"
+                  % (P.BATTERY_L, P.BATTERY_W, P.BATTERY_H))),
         ("过门", "4WS 横移通过，净宽 ≥750 时单边余量 %.0f" % ((750 - P.BODY_W) / 2)),
         ("侧向作业", "硬件按 %.0f 定尺寸；实际范围由动态包络实时给出"
          % P.ARM_REACH_LAT),

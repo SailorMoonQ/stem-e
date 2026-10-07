@@ -86,6 +86,12 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     </div>
 
     <div class="rail">
+      <section class="panel" id="vpanel" hidden>
+        <h2>电池方案</h2>
+        <div class="presets" id="variants"></div>
+        <div class="rd" id="vinfo"></div>
+      </section>
+
       <section class="panel">
         <h2>转向姿态</h2>
         <div class="presets" id="presets"></div>
@@ -162,9 +168,18 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     ['spin','原地自转'], ['lock','X 型驻车'], ['turn','转弯 R1000']
   ];
 
+  var VARIANTS = (typeof MODELS === 'object' && MODELS) ? MODELS
+                 : {single: (typeof MODEL_URI === 'string' ? MODEL_URI : null)};
+  var VLABEL = {rear: '尾舱单包', side: '腹部两侧', single: ''};
+  var VNOTE = {
+    rear: '一包 190×220×200 在后舱，前倾安全系数 2.08，质心前后 −38 mm',
+    side: '两包 300×120×170 挂在立板外侧，前倾安全系数 1.86，质心前后 −10 mm',
+    single: ''
+  };
+  var vstate = {};
+  var active = Object.keys(VARIANTS)[0];
+
   var angles = {FL:0, FR:0, RL:0, RR:0};
-  var turnNodes = {FL:[], FR:[], RL:[], RR:[]};
-  var byPart = {};
   var isolated = null;
   var shellOn = false;        // the mechanism is the point; the skin hides it
 
@@ -220,25 +235,23 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     return arr.buffer;
   }
 
-  function onModel(gltf){
+  function ingest(name, gltf){
+    var st = {root: gltf.scene, turn: {FL:[], FR:[], RL:[], RR:[]}, byPart: {}};
     gltf.scene.traverse(function(o){
       if (!o.isMesh) return;
       o.material = o.material.clone();
       o.material.side = THREE.DoubleSide;
       var n = o.parent && o.parent.name ? o.parent.name : o.name;
       var m = /^(turn|fix)_(FL|FR|RL|RR)_(.+)$/.exec(n);
-      var partKey = m ? m[3] : n;
-      (byPart[partKey] = byPart[partKey] || []).push(o);
-      if (m && m[1] === 'turn') turnNodes[m[2]].push(o.parent || o);
+      var key = m ? m[3] : n;
+      (st.byPart[key] = st.byPart[key] || []).push(o);
+      if (m && m[1] === 'turn' && st.turn[m[2]].indexOf(o.parent) === -1) {
+        st.turn[m[2]].push(o.parent || o);
+      }
     });
-    gltf.scene.traverse(function(o){
-      var m = /^turn_(FL|FR|RL|RR)_/.exec(o.name || '');
-      if (m && turnNodes[m[1]].indexOf(o) === -1) turnNodes[m[1]].push(o);
-    });
+    gltf.scene.visible = (name === active);
     root.add(gltf.scene);
-    document.getElementById('load').hidden = true;
-    apply();
-    updateView();
+    vstate[name] = st;
   }
 
   function onModelFail(err){
@@ -246,21 +259,60 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
       '模型载入失败：' + (err && err.message ? err.message : err);
   }
 
-  // The model ships inside the page as MODEL_URI and is handed straight to the
+  // The model ships inside the page as base64 and is handed straight to the
   // parser.  Fetching a data: URI is blocked by the artifact host's CSP, so
   // loader.load() must not be used for it.
   var loader = new THREE.GLTFLoader();
-  if (typeof MODEL_URI === 'string') {
-    try { loader.parse(base64ToBuffer(MODEL_URI), '', onModel, onModelFail); }
-    catch (e) { onModelFail(e); }
-  } else {
-    loader.load('chassis.glb', onModel, undefined, onModelFail);
+  var pending = Object.keys(VARIANTS).length;
+  Object.keys(VARIANTS).forEach(function(name){
+    var uri = VARIANTS[name];
+    function done(gltf){
+      ingest(name, gltf);
+      if (--pending === 0) {
+        document.getElementById('load').hidden = true;
+        buildVariantUI();
+        apply();
+        updateView();
+      }
+    }
+    if (typeof uri === 'string' && uri.slice(0, 5) === 'data:') {
+      try { loader.parse(base64ToBuffer(uri), '', done, onModelFail); }
+      catch (e) { onModelFail(e); }
+    } else {
+      loader.load(uri || 'chassis.glb', done, undefined, onModelFail);
+    }
+  });
+
+  function buildVariantUI(){
+    var names = Object.keys(vstate);
+    if (names.length < 2) return;
+    var box = document.getElementById('variants');
+    document.getElementById('vpanel').hidden = false;
+    names.forEach(function(n){
+      var b = document.createElement('button');
+      b.textContent = VLABEL[n] || n;
+      b.setAttribute('aria-pressed', String(n === active));
+      b.addEventListener('click', function(){
+        active = n;
+        names.forEach(function(k){ vstate[k].root.visible = (k === active); });
+        Array.prototype.forEach.call(box.children, function(c){
+          c.setAttribute('aria-pressed', String(c === b));
+        });
+        document.getElementById('vinfo').textContent = VNOTE[active] || '';
+        apply();
+        updateView();
+      });
+      box.appendChild(b);
+    });
+    document.getElementById('vinfo').textContent = VNOTE[active] || '';
   }
 
   function apply(){
     ORDER.forEach(function(k){
       var r = angles[k] * Math.PI / 180;
-      turnNodes[k].forEach(function(n){ n.rotation.z = r; });
+      Object.keys(vstate).forEach(function(v){
+        vstate[v].turn[k].forEach(function(n){ n.rotation.z = r; });
+      });
     });
     var box = document.getElementById('angles');
     box.innerHTML = ORDER.map(function(k){
@@ -300,14 +352,17 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
   });
 
   function updateView(){
-    Object.keys(byPart).forEach(function(k){
-      var dim = isolated !== null && k !== isolated;
-      var base = (k === 'shell') ? 0.3 : 1;
-      byPart[k].forEach(function(o){
-        o.visible = (k !== 'shell') || shellOn || isolated === 'shell';
-        o.material.transparent = dim || base < 1;
-        o.material.opacity = dim ? 0.06 : base;
-        o.material.depthWrite = !dim && base === 1;
+    Object.keys(vstate).forEach(function(v){
+      var byPart = vstate[v].byPart;
+      Object.keys(byPart).forEach(function(k){
+        var dim = isolated !== null && k !== isolated;
+        var base = (k === 'shell') ? 0.3 : 1;
+        byPart[k].forEach(function(o){
+          o.visible = (k !== 'shell') || shellOn || isolated === 'shell';
+          o.material.transparent = dim || base < 1;
+          o.material.opacity = dim ? 0.06 : base;
+          o.material.depthWrite = !dim && base === 1;
+        });
       });
     });
     shellBtn.setAttribute('aria-pressed', String(shellOn));

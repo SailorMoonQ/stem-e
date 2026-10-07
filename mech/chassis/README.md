@@ -11,6 +11,9 @@ python compare_ranger.py   # 与 AgileX Ranger Air 的同工况对比
 python error_budget.py     # 四角称重的误差预算
 python height_floor.py     # 甲板高度被什么卡住，各条降高路线的代价
 python web_export.py       # 交互式 3D 查看器，模型内联进单个 HTML
+python compare.py          # 两套电池方案合成一个可切换的查看器
+
+STEM_BATTERY=side python build.py    # 另一套电池方案，输出进 export/side/
 ```
 
 需要 `cadquery matplotlib pyvista trimesh`。输出全部落在 `export/`，不入版本库。

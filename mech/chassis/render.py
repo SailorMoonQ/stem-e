@@ -16,13 +16,14 @@ import params as P
 
 pv.OFF_SCREEN = True
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "export")
+OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 
 ALU = "#b8bcc0"
 PARTS = [
     ("frame", lambda: model.frame(), ALU, 1.0),
     ("battery", lambda: model.battery(), "#303338", 1.0),
     ("drivers", lambda: model.drivers(), "#1d6b3a", 1.0),
+    ("electronics", lambda: model.electronics(), "#55505e", 1.0),
 ]
 MODULE_PARTS = [
     ("wheel", model.hub_motor, "#2b2b2e", 1.0),

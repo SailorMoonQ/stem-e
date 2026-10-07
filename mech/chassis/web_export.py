@@ -17,7 +17,7 @@ import model
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "export")
+OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 TOL = 0.55
 
 COLOURS = {
@@ -25,6 +25,7 @@ COLOURS = {
     "shell": (0.30, 0.52, 0.72),
     "battery": (0.17, 0.18, 0.20),
     "drivers": (0.09, 0.42, 0.18),
+    "electronics": (0.33, 0.30, 0.36),
     "wheel": (0.14, 0.14, 0.15),
     "yoke": (0.62, 0.65, 0.68),
     "kingpin": (0.80, 0.62, 0.20),
@@ -58,6 +59,7 @@ def build_scene():
     scene.add_geometry(_mesh(model.frame(), "frame"), node_name="frame")
     scene.add_geometry(_mesh(model.battery(), "battery"), node_name="battery")
     scene.add_geometry(_mesh(model.drivers(), "drivers"), node_name="drivers")
+    scene.add_geometry(_mesh(model.electronics(), "electronics"), node_name="electronics")
     scene.add_geometry(_mesh(model.shell(), "shell", 0.26), node_name="shell")
 
     rails, cell, spring = model.suspension()

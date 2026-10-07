@@ -13,6 +13,8 @@ Vendor numbers in COMPONENTS are measured from the official STEP models and
   https://github.com/dmBots/DM-J4340-2EC
 """
 
+import os
+
 # --------------------------------------------------------------------------
 # Vendor components (measured, do not edit without re-checking the STEP file)
 # --------------------------------------------------------------------------
@@ -186,7 +188,6 @@ TOP_PLATE_Z0 = DECK_Z - TOP_PLATE_T
 # hung under the deck.  Boxes bolt to the outboard face of each spine, so no
 # extra floor structure is needed.
 ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
-ELEC_Z0 = BASE_PLATE_Z0 + 14.0
 ELEC_MASS = 2.0
 
 LIGHTEN_PITCH = 78.0
@@ -194,15 +195,43 @@ LIGHTEN_D = 64.0
 WEB_HOLE_D = 100.0           # truss holes in the spines and cross members
 WEB_HOLE_PITCH = 150.0
 
-# 24V 30Ah LiFePO4, laid across the bay: the bay is wider than it is long
-# once the body shortens, so the pack turns 90 degrees.  Not bought yet, so
-# treat this as the envelope to buy against; sizing.py prints the bay.
-# The bay is waisted, not rectangular: the two rear steering sweep circles cut
-# into it and pinch the clear width from 262 down to 236 at the axle line.  The
-# pack has to fit the narrow point, not the wide one.  build.py checks this.
-BATTERY_L, BATTERY_W, BATTERY_H = 190.0, 220.0, 200.0
+# --------------------------------------------------------------------------
+# Battery layout.  Two arrangements are carried side by side so they can be
+# compared as built rather than argued about:
+#
+#   rear  one pack in the aft bay.  Puts the chassis centre of gravity 38 mm
+#         back, which is worth 0.29 of forward safety factor for free.
+#   side  two packs in the belly flanks, G2 style.  Symmetric, 28 percent less
+#         polar inertia, lower, and it gives the shell a waist to wrap.
+#
+#   STEM_BATTERY=side python build.py
+# --------------------------------------------------------------------------
+
+BATTERY_LAYOUT = os.environ.get("STEM_BATTERY", "rear").lower()
+assert BATTERY_LAYOUT in ("rear", "side"), BATTERY_LAYOUT
+EXPORT_DIR = "export/" + BATTERY_LAYOUT
+
 BATTERY_MASS = 8.0
-BATTERY_X = -(CROSS_X + SPINE_T / 2 + (BODY_L / 2 - 10.0)) / 2   # rear bay centre
+REAR_BAY_X = -(CROSS_X + SPINE_T / 2 + (BODY_L / 2 - 10.0)) / 2
+
+if BATTERY_LAYOUT == "rear":
+    # One pack, aft bay.  The bay is waisted, not rectangular: the two rear
+    # sweep circles pinch the clear width from 262 to 236 at the axle line, so
+    # the pack is sized on the narrow point.  build.py checks it.
+    BATTERY_L, BATTERY_W, BATTERY_H = 190.0, 220.0, 200.0
+    BATTERY_PACKS = [(REAR_BAY_X, 0.0)]
+    ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
+    ELEC_SIDE = True             # electronics in the belly flanks
+else:
+    # Two packs in the belly flanks, hung off the outboard face of each spine.
+    # Nothing supports them from below out there, which is fine: a flank pack
+    # is a plate hanging on the web, not a box sitting on a floor.
+    BATTERY_L, BATTERY_W, BATTERY_H = 300.0, 120.0, 170.0
+    BATTERY_PACKS = []           # filled in below once SPINE_Y is known
+    ELEC_L, ELEC_W, ELEC_H = 170.0, 225.0, 150.0
+    ELEC_SIDE = False            # electronics take the aft bay instead
+
+BATTERY_X = BATTERY_PACKS[0][0] if BATTERY_PACKS else 0.0
 # Deck cut-out over each equipment bay.  Sized to stay clear of the cross
 # member and the spines, so it never interrupts a load path.  It is for
 # electronics access: the battery is wider than the gap between the spines and
@@ -286,3 +315,20 @@ CORNERS = (
     ("RL", -WHEELBASE / 2, +TRACK / 2),
     ("RR", -WHEELBASE / 2, -TRACK / 2),
 )
+
+# --------------------------------------------------------------------------
+# Deferred placements that need SPINE_Y
+# --------------------------------------------------------------------------
+
+_FLANK_Y = SPINE_Y + SPINE_T / 2
+
+if BATTERY_LAYOUT == "side":
+    BATTERY_PACKS = [(0.0, _FLANK_Y + BATTERY_W / 2),
+                     (0.0, -(_FLANK_Y + BATTERY_W / 2))]
+    BATTERY_Z0 = GROUND_CLEARANCE + 10.0        # as low as the skirt allows
+    ELEC_PACKS = [(REAR_BAY_X, 0.0)]
+    ELEC_Z0 = BASE_PLATE_Z0 + BASE_PLATE_T
+else:
+    BATTERY_Z0 = BASE_PLATE_Z0 + BASE_PLATE_T
+    ELEC_PACKS = [(0.0, _FLANK_Y + ELEC_W / 2), (0.0, -(_FLANK_Y + ELEC_W / 2))]
+    ELEC_Z0 = BASE_PLATE_Z0 + 14.0
