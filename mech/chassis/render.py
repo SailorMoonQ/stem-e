@@ -57,13 +57,13 @@ def _add_all(pl, with_shell):
             s = solid.mirror("XZ") if mirror else solid
             pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=colour, smooth_shading=False)
     if with_shell:
-        for nm, col in [('shell_skirt', '#eeefed'), ('shell_upper', '#f2f3f1'), ('shell_belt', '#12151a'), ('shell_cover', '#232629'), ('shell_panels', '#e9eae8'), ('shell_light', '#6bb8f0'), ('shell_arch_flare', '#eeefed'), ('shell_arch_liner', '#1c1e20'), ('estop', '#b8282a')]:
+        for nm, col in [('shell_skirt', '#2b2f35'), ('shell_arch_liner', '#15171a'), ('shell_belt', '#15171a'), ('shell_windows', '#070809'), ('shell_light', '#5bb9f2'), ('shell_upper', '#f2f3f1'), ('shell_panels', '#2b2f35'), ('shell_cover', '#15171a'), ('lift_eyes', '#6a6e73'), ('estop', '#c0282a')]:
             pl.add_mesh(_mesh(getattr(model, nm)()), color=col, smooth_shading=False)
 
 
 def render(name, direction, with_shell, zoom=1.0, bounds=None, size=(1500, 1050)):
     pl = pv.Plotter(off_screen=True, window_size=size)
-    pl.set_background("white")
+    pl.set_background("#dfe3e6")
     _add_all(pl, with_shell)
     pl.enable_parallel_projection()
     pl.view_vector(direction, viewup=(0, 0, 1))

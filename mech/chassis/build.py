@@ -31,8 +31,9 @@ PARTS = {
     "shell_belt": model.shell_belt,
     "shell_cover": model.shell_cover,
     "shell_panels": model.shell_panels,
-    "shell_arch_flare": model.shell_arch_flare,
     "shell_arch_liner": model.shell_arch_liner,
+    "shell_windows": model.shell_windows,
+    "lift_eyes": model.lift_eyes,
 }
 
 
@@ -98,6 +99,16 @@ def interference():
         v = _vol(stat.intersect(sweep))
         if v > 1.0:
             findings.append(("--", sname, "INSIDE_STEERING_SWEEP", v))
+    # Nothing mounted inside may cross the skin.  The upper shell draws in
+    # 50 mm per side on the way to the deck, so a box that clears the body
+    # width down at the band can still be through the surface at the top.
+    for sname, stat in statics.items():
+        if sname == "frame" or sname.startswith("shell"):
+            continue
+        v = _vol(stat.intersect(shell))
+        if v > 1.0:
+            findings.append(("--", sname, "THROUGH_SHELL", v))
+
     gap = P.TOP_PLATE_Z0 - P.MODULE_TOP_Z
     if gap < P.SUSP_TRAVEL_MECH:
         findings.append(("--", "deck underside", "module top on bump", gap))

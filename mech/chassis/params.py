@@ -212,7 +212,8 @@ SHELL_FILLET = 62.0                  # big soft radii; the body reads as one
 SHELL_SKIRT_TOP = 206.0
 SHELL_BELT_TOP = 232.0               # 26 mm band, tall enough to be the graphic
 SHELL_BELT_OUT = 6.0                 # the band stands proud, it does not recess
-SHELL_BOTTOM_TUCK = 30.0             # strong tuck, so the body looks to float
+SHELL_BOTTOM_TUCK = 16.0             # draft on the lower body; the aft pack
+                                     # sets the limit, see build.py THROUGH_SHELL
 SHELL_TOP_L = DECK_L + 6.0
 
 # Axiom language, after the service robots aboard the ship: one white volume,
@@ -222,8 +223,27 @@ SHELL_TOP_L = DECK_L + 6.0
 ARCH_LIP = 4.0                       # rolled hem; kills the sheared edge quietly
 ARCH_LIP_W = 10.0
 COVER_T = 1.5
-COVER_INSET = 7.0
+# The top is white shell with a dark pad let into it, not a black slab laid on
+# top.  The upper shell returns inward at deck height, which closes the 30 mm
+# slot that otherwise runs down each side between the deck plate and the skin,
+# and stiffens the free edge of a 1.5 mm sheet at the same time.  The pad only
+# has to clear the column bolt circle and the lifting eyes.
+COVER_L = 460.0
+COVER_W = 340.0
+COVER_R = 100.0
+COVER_GAP = 1.0                      # shadow line between pad and flange
 BODY_W_MAX = BODY_W + 2 * SHELL_BELT_OUT
+
+# Real requirements that the skin has to carry, not styling.  Nav2 needs a
+# scanner; one 270 degree unit cannot see behind itself, so two sit at
+# diagonal corners, which is the ordinary AMR answer and happens to give the
+# band something to do.  A 100 kg machine needs lifting points, and they bolt
+# to the frame nodes where a spine meets a cross member, not to the skin.
+LIDAR_CORNERS = ("FL", "RR")
+LIDAR_FOV = 150.0                    # window half angle each side of diagonal
+CAM_W = 120.0                        # forward depth camera window
+LIFT_EYE_OD = 30.0
+LIFT_EYE_XY = (CROSS_X, SPINE_Y)     # spine meets cross member: a real node
 
 # How far the waist can pull in is set by the corner modules, not by taste: the
 # steering motor bracket reaches TRACK/2 + HOUSING_W/2 at MODULE_TOP_Z and the

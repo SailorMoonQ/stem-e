@@ -405,10 +405,15 @@ _F = P.SHELL_FILLET
 
 
 def _skirt_sections():
+    """Tapers all the way up instead of standing straight.
+
+    With the upper shell pulling in above the band and the lower body pulling
+    in below it, the silhouette becomes a lens with its widest point at the
+    band, rather than a slab sitting on a box.
+    """
     tuck = P.SHELL_BOTTOM_TUCK
     return [
         (P.BODY_L - 2 * tuck, P.BODY_W - 2 * tuck, P.GROUND_CLEARANCE, _F - tuck / 2),
-        (P.BODY_L, P.BODY_W, P.GROUND_CLEARANCE + 34, _F),
         (P.BODY_L, P.BODY_W, P.SHELL_SKIRT_TOP, _F),
     ]
 
@@ -416,8 +421,19 @@ def _skirt_sections():
 def _upper_sections():
     return [
         (P.BODY_L, P.BODY_W, P.SHELL_BELT_TOP, _F),
-        (P.SHELL_TOP_L, P.SHELL_TOP_W, P.DECK_Z, _F - 6),
+        (P.SHELL_TOP_L, P.SHELL_TOP_W, P.DECK_Z + P.COVER_T, _F - 6),
     ]
+
+
+def _upper_at(z):
+    """Half length and half width of the upper shell at a height.
+
+    Anything mounted on the tapered flank has to be placed off this, not off
+    the body size, or it ends up floating clear of the surface.
+    """
+    (l0, w0, z0, _), (l1, w1, z1, _) = _upper_sections()
+    f = (z - z0) / (z1 - z0)
+    return (l0 + (l1 - l0) * f) / 2, (w0 + (w1 - w0) * f) / 2
 
 
 def _belt_sections():
@@ -471,44 +487,44 @@ def shell_skirt():
     return s
 
 
+def _cover_opening(grow=0.0):
+    return (cq.Workplane("XY", origin=(0, 0, P.DECK_Z - 1))
+            .placeSketch(_rr(P.COVER_L + 2 * grow, P.COVER_W + 2 * grow,
+                             0, P.COVER_R + grow))
+            .extrude(P.COVER_T + 2))
+
+
 def shell_upper():
-    """Light upper volume, shoulder taper, badge and connector bezel."""
+    """Light upper volume, shoulder taper, and the return flange that tops it.
+
+    The flange is what makes the roof read as one white surface with a pad let
+    into it rather than a black lid sitting on a white box, and it is also the
+    only thing closing the gap between the narrow deck plate and the skin.
+    """
     s = _skin(_upper_sections(), P.SHELL_T).cut(_sweep_clearance()).cut(_io_cut())
-    return s
+    flange = (
+        cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
+        .placeSketch(_rr(P.SHELL_TOP_L, P.SHELL_TOP_W, 0, _F - 6))
+        .extrude(P.COVER_T)
+        .cut(_cover_opening())
+    )
+    return s.union(flange)
 
 
 def _grown(sections, d):
     return [(l + 2 * d, w + 2 * d, z, r + d) for l, w, z, r in sections]
 
 
-def shell_arch_flare():
-    """Rolled hem around each wheel opening.
-
-    A sheared 1.5 mm edge at shin height cuts people.  Rolling it fixes that,
-    and keeping the roll small and in body colour means the fix stays invisible
-    rather than becoming decoration.
-    """
-    d = P.ARCH_LIP
-    band = _loft(_grown(_skirt_sections(), d)).cut(_loft(_skirt_sections()))
-    out = None
-    for _, cx, cy in P.CORNERS:
-        ring = (
-            cq.Workplane("XY", origin=(cx, cy, 0))
-            .circle(P.SWEEP_CLEAR_R + P.ARCH_LIP_W)
-            .extrude(P.SHELL_SKIRT_TOP)
-        )
-        bore = (
-            cq.Workplane("XY", origin=(cx, cy, 0))
-            .circle(P.SWEEP_CLEAR_R)
-            .extrude(P.SHELL_SKIRT_TOP)
-        )
-        f = band.intersect(ring).cut(bore)
-        out = f if out is None else out.union(f)
-    return out
-
-
 def shell_arch_liner():
-    """Shroud between the wheel and the inside of the body."""
+    """Shroud between the wheel and the inside of the body.
+
+    Its outer rim turns back on itself and fills the thickness of the skirt, so
+    the opening is bounded by a folded return rather than by a sheared 1.5 mm
+    edge at shin height.  That is how the hem gets done in sheet metal, and it
+    is why there is no separate trim ring: a ring of constant radial width in
+    plan turns into a sail where the skirt runs tangent to the radius, which is
+    exactly at the body corner.
+    """
     out = None
     body = _loft(_skirt_sections())
     for _, cx, cy in P.CORNERS:
@@ -524,8 +540,68 @@ def shell_arch_liner():
                  .extrude(h))
         )
         w = wall.intersect(body)
+        # The returned rim: a short collar at the opening, flush with the skin.
+        rim = (
+            cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
+            .circle(P.SWEEP_CLEAR_R + P.SHELL_T)
+            .extrude(h)
+            .cut(cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
+                 .circle(P.SWEEP_CLEAR_R)
+                 .extrude(h))
+            .intersect(_skin(_skirt_sections(), P.SHELL_T))
+        )
+        w = w.union(rim)
         out = w if out is None else out.union(w)
     return out
+
+
+def _band_corner(name):
+    """Centre and radius of the band's corner arc at a given wheel corner."""
+    o = P.SHELL_BELT_OUT
+    r = _F + o
+    cx = (P.BODY_L / 2 + o - r)
+    cy = (P.BODY_W / 2 + o - r)
+    sx, sy = [(x, y) for n, x, y in P.CORNERS if n == name][0]
+    return (cx * (1 if sx > 0 else -1), cy * (1 if sy > 0 else -1), r,
+            1 if sx > 0 else -1, 1 if sy > 0 else -1)
+
+
+def _window_solids(grow):
+    """Sensor windows let into the band: two scanners, one forward camera."""
+    z0, z1 = P.SHELL_SKIRT_TOP + 3, P.SHELL_BELT_TOP - 3
+    out = None
+    for name in P.LIDAR_CORNERS:
+        cx, cy, r, sx, sy = _band_corner(name)
+        base = math.degrees(math.atan2(sy, sx))
+        w = (
+            cq.Workplane("XY", origin=(cx, cy, z0))
+            .circle(r + grow)
+            .extrude(z1 - z0)
+            .cut(cq.Workplane("XY", origin=(cx, cy, z0))
+                 .circle(r - 4).extrude(z1 - z0))
+            .intersect(
+                cq.Workplane("XY", origin=(cx, cy, z0))
+                .moveTo(0, 0)
+                .lineTo((r + 40) * math.cos(math.radians(base - P.LIDAR_FOV / 2)),
+                        (r + 40) * math.sin(math.radians(base - P.LIDAR_FOV / 2)))
+                .lineTo((r + 40) * math.cos(math.radians(base)),
+                        (r + 40) * math.sin(math.radians(base)))
+                .lineTo((r + 40) * math.cos(math.radians(base + P.LIDAR_FOV / 2)),
+                        (r + 40) * math.sin(math.radians(base + P.LIDAR_FOV / 2)))
+                .close().extrude(z1 - z0))
+        )
+        out = w if out is None else out.union(w)
+    cam = (
+        cq.Workplane("XY", origin=(P.BODY_L / 2 + P.SHELL_BELT_OUT - 4, 0, z0))
+        .box(8 + grow, P.CAM_W, z1 - z0, centered=(True, True, False))
+    )
+    return out.union(cam)
+
+
+def shell_windows():
+    """Dark windows sitting in the band: the scanners and the camera."""
+    return _window_solids(2.0).intersect(
+        _loft(_grown(_belt_sections(), 2.0)))
 
 
 def shell_belt():
@@ -535,7 +611,8 @@ def shell_belt():
     bumper standing proud of the body, so nothing on this machine is there only
     to be looked at.
     """
-    return _skin(_belt_sections(), P.SHELL_BELT_OUT + P.SHELL_T).cut(_sweep_clearance())
+    band = _skin(_belt_sections(), P.SHELL_BELT_OUT + P.SHELL_T).cut(_sweep_clearance())
+    return band.cut(_window_solids(4.0))
 
 
 def shell_light():
@@ -564,13 +641,12 @@ def shell_light():
 
 
 def shell_cover():
-    """Dark plate on the deck, inset from the shell edge so a reveal shows."""
-    i = P.COVER_INSET
+    """Dark service pad let into the roof, around the column and the eyes."""
     c = (
         cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
-        .box(P.SHELL_TOP_L - 2 * i, P.SHELL_TOP_W - 2 * i, P.COVER_T,
-             centered=(True, True, False))
-        .edges("|Z").fillet(20)
+        .placeSketch(_rr(P.COVER_L - 2 * P.COVER_GAP, P.COVER_W - 2 * P.COVER_GAP,
+                         0, P.COVER_R - P.COVER_GAP))
+        .extrude(P.COVER_T)
     )
     c = c.cut(
         cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
@@ -583,13 +659,39 @@ def shell_cover():
         .circle(5)
         .extrude(P.COVER_T)
     )
-    return c
+    # Lifting eyes.  Style does not get to veto them: 100 kg has to be craned
+    # and jacked, and they bolt straight into the spine and cross member node,
+    # not into the skin.
+    ex, ey = P.LIFT_EYE_XY
+    return c.cut(
+        cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
+        .pushPoints([(sx * ex, sy * ey) for sx in (1, -1) for sy in (1, -1)])
+        .circle(P.LIFT_EYE_OD / 2)
+        .extrude(P.COVER_T)
+    )
+
+
+def lift_eyes():
+    """Flush recessed eyes down at deck level, over the frame nodes."""
+    ex, ey = P.LIFT_EYE_XY
+    out = None
+    for sx in (1, -1):
+        for sy in (1, -1):
+            e = (
+                cq.Workplane("XY", origin=(sx * ex, sy * ey, P.TOP_PLATE_Z0))
+                .circle(P.LIFT_EYE_OD / 2 - 1)
+                .extrude(P.TOP_PLATE_T)
+                .cut(cq.Workplane("XY", origin=(sx * ex, sy * ey, P.TOP_PLATE_Z0))
+                     .circle(P.LIFT_EYE_OD / 2 - 7).extrude(P.TOP_PLATE_T))
+            )
+            out = e if out is None else out.union(e)
+    return out
 
 
 def shell():
     """Everything fixed, for mass and clash checking."""
     s = shell_skirt().union(shell_upper()).union(shell_belt()).union(shell_cover())
-    return s.union(shell_arch_flare()).union(shell_arch_liner())
+    return s.union(shell_arch_liner()).union(shell_windows())
 
 
 def shell_panels():
@@ -606,10 +708,11 @@ def shell_panels():
 def estop():
     """Mushroom head on the aft face.  The torso needs its own; this one only
     covers someone standing behind the base."""
+    hl, _ = _upper_at(P.ESTOP_Z)
     return (
-        cq.Workplane("YZ", origin=(-P.BODY_L / 2 + 10, 0, P.ESTOP_Z + 42))
+        cq.Workplane("YZ", origin=(-hl - 1, 0, P.ESTOP_Z))
         .circle(P.ESTOP_OD / 2)
-        .extrude(-26)
+        .extrude(-14)
     )
 
 
@@ -670,7 +773,8 @@ def chassis(with_shell=True):
                         ("shell_cover", (0.14, 0.15, 0.16)),
                         ("shell_panels", (0.91, 0.92, 0.91)),
                         ("shell_light", (0.42, 0.72, 0.95)),
-                        ("shell_arch_flare", (0.93, 0.94, 0.93)),
+                        ("shell_windows", (0.05, 0.06, 0.08)),
+                        ("lift_eyes", (0.30, 0.32, 0.34)),
                         ("shell_arch_liner", (0.11, 0.12, 0.13)),
                         ("estop", (0.72, 0.16, 0.08))):
             asm.add(globals()[nm](), name=nm, color=cq.Color(*col))

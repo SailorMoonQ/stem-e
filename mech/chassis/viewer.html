@@ -145,15 +145,16 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     ['frame','车架','#b3b8bc','1'],
     ['battery','电池','#2c2e33','1'],
     ['drivers','驱动器 DM6540','#176b2e','x4'],
-    ['shell_skirt','下体','#e6e7e5','1'],
-    ['shell_upper','上壳','#d8d9d6','1'],
-    ['shell_belt','面罩带','#12151a','1'],
-    ['shell_cover','甲板盖','#232629','1'],
-    ['shell_panels','可拆面板','#e9eae8','-'],
-    ['shell_light','LED','#6bb8f0','环通'],
-    ['shell_arch_flare','轮口翻边','#e6e7e5','x4'],
-    ['shell_arch_liner','轮罩内衬','#1c1e20','x4'],
-    ['estop','急停','#b8282a','1']
+    ['shell_skirt','下体','#2b2f35','1'],
+    ['shell_upper','上壳','#f2f3f1','1'],
+    ['shell_belt','面罩带','#15171a','1'],
+    ['shell_cover','甲板盖','#15171a','1'],
+    ['shell_panels','可拆面板','#2b2f35','-'],
+    ['shell_light','LED','#5bb9f2','环通'],
+    ['shell_arch_liner','轮罩内衬','#15171a','x4'],
+    ['shell_windows','传感器窗 (雷达x2/相机)','#070809','x3'],
+    ['lift_eyes','吊装点','#6a6e73','x4'],
+    ['estop','急停','#c0282a','1']
   ];
 
   function deg(r){ return r*180/Math.PI; }
@@ -366,7 +367,7 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
         var dim = isolated !== null && k !== isolated;
         var base = 1;
         byPart[k].forEach(function(o){
-          var isShell = k.indexOf('shell') === 0 || k === 'estop';
+          var isShell = k.indexOf('shell') === 0 || k === 'estop' || k === 'lift_eyes';
         o.visible = !isShell || shellOn || isolated === k;
           o.material.transparent = dim || base < 1;
           o.material.opacity = dim ? 0.06 : base;
