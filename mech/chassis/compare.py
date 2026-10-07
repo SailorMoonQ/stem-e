@@ -38,7 +38,7 @@ def main():
     curb = massprops.chassis_mass_properties()[0]
     st = B.stability()
     fields = {
-        "BODY": "%.0f × %.0f × %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z),
+        "BODY": "%.0f × %.0f × %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z),
         "CURB": "%.1f" % curb,
         "WB": "%.0f" % P.WHEELBASE,
         "TR": "%.0f" % P.TRACK,

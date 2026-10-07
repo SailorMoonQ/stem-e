@@ -82,7 +82,7 @@ def centre_lines(ax, cx, cy, r):
 
 def plan(ax, ox, oy):
     s = SCALE
-    L, W = P.BODY_L * s, P.BODY_W * s
+    L, W = P.SHELL_L * s, P.BODY_W * s
     ax.add_patch(Rectangle((ox - L / 2, oy - W / 2), L, W, fill=False, lw=LW_OUT, ec="k"))
     for _, x, y in P.CORNERS:
         cx, cy = ox + x * s, oy + y * s
@@ -128,7 +128,7 @@ def plan(ax, ox, oy):
 
     dim_h(ax, ox - P.WHEELBASE / 2 * s, ox + P.WHEELBASE / 2 * s, oy - W / 2 - 9,
           "轴距 %.0f" % P.WHEELBASE)
-    dim_h(ax, ox - L / 2, ox + L / 2, oy - W / 2 - 19, "车体全长 %.0f" % P.BODY_L)
+    dim_h(ax, ox - L / 2, ox + L / 2, oy - W / 2 - 19, "车体全长 %.0f" % P.SHELL_L)
     dim_v(ax, oy - P.TRACK / 2 * s, oy + P.TRACK / 2 * s, ox + L / 2 + 8,
           "轮距 %.0f" % P.TRACK)
     dim_v(ax, oy - W / 2, oy + W / 2, ox + L / 2 + 18, "车体全宽 %.0f" % P.BODY_W)
@@ -166,7 +166,7 @@ def _body_with_arches(ax, ox, oy, half_span, centres, s):
 def side(ax, ox, oy):
     """Elevation looking along +Y.  ``oy`` is the ground line."""
     s = SCALE
-    L = P.BODY_L * s
+    L = P.SHELL_L * s
     ax.plot([ox - L / 2 - 14, ox + L / 2 + 14], [oy, oy], lw=LW_OUT, color="k")
     _body_with_arches(ax, ox, oy, L / 2, (-P.WHEELBASE / 2, P.WHEELBASE / 2), s)
     for x in (-P.WHEELBASE / 2, P.WHEELBASE / 2):
@@ -230,7 +230,7 @@ def data_block(ax, x, y):
         ("转向电机", "DM-J4340-2EC x4，40:1，9/27 Nm，直驱主销"),
         ("驱动器", "DM6540-1EC x4，分体式，车内安装"),
         ("轴距 x 轮距", "%.0f x %.0f" % (P.WHEELBASE, P.TRACK)),
-        ("车体 长宽高", "%.0f x %.0f x %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z)),
+        ("车体 长宽高", "%.0f x %.0f x %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z)),
         ("离地间隙", "%.0f" % P.GROUND_CLEARANCE),
         ("升降柱接口", "%d x M8 @ PCD Ø%.0f + Ø%.0f 止口，局部 %.0f mm"
          % (P.COLUMN_BOLTS, P.COLUMN_PCD, P.COLUMN_SPIGOT_OD,

@@ -62,7 +62,7 @@ TRACK = 420.0                # Y, left to right kingpin axis distance
 # sweep is whatever the model actually cuts, so derive one from the other
 # rather than carrying two numbers that can disagree.
 WHEEL_SWEEP_OD = 184.0       # == 2 * SWEEP_CLEAR_R, see below
-BODY_L = WHEELBASE + WHEEL_SWEEP_OD
+BODY_L = WHEELBASE + WHEEL_SWEEP_OD  # structure: frame, deck, bays, base plate
 BODY_W = TRACK + WHEEL_SWEEP_OD
 
 # Raised from 60: the deck is at its floor, so the only way to make the body
@@ -214,7 +214,6 @@ SHELL_BELT_TOP = 232.0               # 26 mm band, tall enough to be the graphic
 SHELL_BELT_OUT = 6.0                 # the band stands proud, it does not recess
 SHELL_BOTTOM_TUCK = 16.0             # draft on the lower body; the aft pack
                                      # sets the limit, see build.py THROUGH_SHELL
-SHELL_TOP_L = DECK_L + 6.0
 
 # Axiom language, after the service robots aboard the ship: one white volume,
 # no visible fasteners, and a single dark glossy band doing every job at once.
@@ -232,6 +231,25 @@ COVER_L = 460.0
 COVER_W = 340.0
 COVER_R = 100.0
 COVER_GAP = 1.0                      # shadow line between pad and flange
+# The skin is longer than the structure.  Cut flush with the sweep circles the
+# way it was, the four corners are missing and the machine reads as a box on
+# legs; carried 60 mm past them, each wheel sits in an opening in a continuous
+# flank instead.  Only the skin grows - the frame, deck and bays stay put, so
+# nothing about stiffness, mass distribution or the bays moves with it.
+#
+# Length is free here: the door is passed by crabbing and what it measures is
+# the width (see sizing.py), which is untouched at 616.  What does move is the
+# diagonal, 966 -> 1053, still inside a 1200 corridor for a spin in place.
+SHELL_OVERHANG = 60.0
+SHELL_L = BODY_L + 2 * SHELL_OVERHANG
+
+# The white volume drafts gently and then rolls over into the roof, instead of
+# meeting it at a hard arris.  The previous 50 mm a side, in Y only, was a 24
+# degree wedge and read as a lid rather than as a body; 14 mm over the 99 mm of
+# straight flank is 8 degrees, and the last 14 mm is the roll.
+SHELL_SHOULDER = 14.0                # straight draft, per side
+SHELL_CROWN = 14.0                   # radius of the roll into the roof
+SHELL_TOP_L = SHELL_L - 2 * (SHELL_SHOULDER + SHELL_CROWN)
 BODY_W_MAX = BODY_W + 2 * SHELL_BELT_OUT
 
 # Real requirements that the skin has to carry, not styling.  Nav2 needs a
@@ -251,7 +269,12 @@ LIFT_EYE_XY = (CROSS_X, SPINE_Y)     # spine meets cross member: a real node
 # back into a module.
 _SHELL_F = (MODULE_TOP_Z - SHELL_BELT_TOP) / (DECK_Z - SHELL_BELT_TOP)
 _SHELL_NEED = TRACK / 2 + HOUSING_W / 2 + 5.0
-SHELL_TOP_W = BODY_W - (BODY_W - 2 * _SHELL_NEED) / _SHELL_F
+_SHELL_TOP_W_MIN = BODY_W - (BODY_W - 2 * _SHELL_NEED) / _SHELL_F
+SHELL_TOP_W = BODY_W - 2 * (SHELL_SHOULDER + SHELL_CROWN)
+assert SHELL_TOP_W >= _SHELL_TOP_W_MIN, (
+    "upper shell drafts past the corner module envelope: %.0f < %.0f"
+    % (SHELL_TOP_W, _SHELL_TOP_W_MIN))
+assert SHELL_TOP_L >= DECK_L + 6.0, "upper shell drafts inside the deck plate"
 ESTOP_OD = 40.0
 ESTOP_Z = 300.0
 IO_PANEL = (150.0, 40.0)             # charge port, switch, ethernet, status

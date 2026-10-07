@@ -68,10 +68,10 @@ def main():
     rows = [
         ("车体 长x宽x高 mm", "%.0f x %.0f x %.0f" % (RANGER_AIR["body_l"], RANGER_AIR["body_w"],
                                                  RANGER_AIR["body_h"]),
-         "%.0f x %.0f x %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z)),
+         "%.0f x %.0f x %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z)),
         ("车体体积 L", "%.0f" % (RANGER_AIR["body_l"] * RANGER_AIR["body_w"]
                               * RANGER_AIR["body_h"] / 1e6),
-         "%.0f" % (P.BODY_L * P.BODY_W * P.DECK_Z / 1e6)),
+         "%.0f" % (P.SHELL_L * P.BODY_W * P.DECK_Z / 1e6)),
         ("轴距 x 轮距 mm", "%.0f x %.0f" % (RANGER_AIR["wheelbase"], RANGER_AIR["track"]),
          "%.0f x %.0f" % (P.WHEELBASE, P.TRACK)),
         ("离地间隙 mm", "%.0f" % RANGER_AIR["ground_clearance"], "%.0f" % P.GROUND_CLEARANCE),
@@ -79,7 +79,7 @@ def main():
         ("整备密度 kg/m3", "%.0f" % (RANGER_AIR["curb_kg"] /
                                  (RANGER_AIR["body_l"] * RANGER_AIR["body_w"]
                                   * RANGER_AIR["body_h"] / 1e9)),
-         "%.0f" % (curb / (P.BODY_L * P.BODY_W * P.DECK_Z / 1e9))),
+         "%.0f" % (curb / (P.SHELL_L * P.BODY_W * P.DECK_Z / 1e9))),
         ("额定载重 kg", "%.0f" % RANGER_AIR["rated_payload_kg"],
          "%.0f（上半身 %.0f + 负载 %.0f）" % (P.UPPER_BODY_MASS + P.PAYLOAD_MASS,
                                         P.UPPER_BODY_MASS, P.PAYLOAD_MASS)),

@@ -131,7 +131,7 @@ def write_pages(glb_path):
     curb = massprops.chassis_mass_properties()[0]
     st = B.stability()
     fields = {
-        "BODY": "%.0f × %.0f × %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z),
+        "BODY": "%.0f × %.0f × %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z),
         "CURB": "%.1f" % curb,
         "WB": "%.0f" % P.WHEELBASE,
         "TR": "%.0f" % P.TRACK,
@@ -189,7 +189,7 @@ if __name__ == "__main__":
         "corners": {n: [x, y] for n, x, y in P.CORNERS},
         "wheelbase": P.WHEELBASE,
         "track": P.TRACK,
-        "body": [P.BODY_L, P.BODY_W, P.DECK_Z],
+        "body": [P.SHELL_L, P.BODY_W, P.DECK_Z],
         "steer_limit_deg": P.STEER_LIMIT_DEG,
         "susp_travel_nominal": P.SUSP_TRAVEL_NOMINAL,
         "susp_travel_mech": P.SUSP_TRAVEL_MECH,

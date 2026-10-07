@@ -413,16 +413,31 @@ def _skirt_sections():
     """
     tuck = P.SHELL_BOTTOM_TUCK
     return [
-        (P.BODY_L - 2 * tuck, P.BODY_W - 2 * tuck, P.GROUND_CLEARANCE, _F - tuck / 2),
-        (P.BODY_L, P.BODY_W, P.SHELL_SKIRT_TOP, _F),
+        (P.SHELL_L - 2 * tuck, P.BODY_W - 2 * tuck, P.GROUND_CLEARANCE, _F - tuck / 2),
+        (P.SHELL_L, P.BODY_W, P.SHELL_SKIRT_TOP, _F),
     ]
 
 
 def _upper_sections():
-    return [
-        (P.BODY_L, P.BODY_W, P.SHELL_BELT_TOP, _F),
-        (P.SHELL_TOP_L, P.SHELL_TOP_W, P.DECK_Z + P.COVER_T, _F - 6),
+    """Straight draft up the flank, then a quarter round into the roof.
+
+    Lofted straight to the top the roof meets the flank at an arris, which is
+    the one thing on the whole body that reads as cheap.  The roll is stepped
+    through three sections because a loft cannot be filleted afterwards.
+    """
+    top = P.DECK_Z + P.COVER_T
+    r = P.SHELL_CROWN
+    out = [
+        (P.SHELL_L, P.BODY_W, P.SHELL_BELT_TOP, _F),
+        (P.SHELL_TOP_L + 2 * r, P.SHELL_TOP_W + 2 * r, top - r,
+         _F - P.SHELL_SHOULDER),
     ]
+    for a in (30.0, 60.0, 90.0):
+        d = r * (1 - math.cos(math.radians(a)))
+        out.append((P.SHELL_TOP_L + 2 * (r - d), P.SHELL_TOP_W + 2 * (r - d),
+                    top - r + r * math.sin(math.radians(a)),
+                    _F - P.SHELL_SHOULDER - d))
+    return out
 
 
 def _upper_at(z):
@@ -431,16 +446,19 @@ def _upper_at(z):
     Anything mounted on the tapered flank has to be placed off this, not off
     the body size, or it ends up floating clear of the surface.
     """
-    (l0, w0, z0, _), (l1, w1, z1, _) = _upper_sections()
-    f = (z - z0) / (z1 - z0)
-    return (l0 + (l1 - l0) * f) / 2, (w0 + (w1 - w0) * f) / 2
+    s = _upper_sections()
+    for (l0, w0, z0, _), (l1, w1, z1, _) in zip(s, s[1:]):
+        if z <= z1 or (l1, w1, z1) == s[-1][:3]:
+            f = (z - z0) / (z1 - z0)
+            return (l0 + (l1 - l0) * f) / 2, (w0 + (w1 - w0) * f) / 2
+    raise ValueError(z)
 
 
 def _belt_sections():
     o = P.SHELL_BELT_OUT
     return [
-        (P.BODY_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_SKIRT_TOP - 1, _F + o),
-        (P.BODY_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_BELT_TOP + 1, _F + o),
+        (P.SHELL_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_SKIRT_TOP - 1, _F + o),
+        (P.SHELL_L + 2 * o, P.BODY_W + 2 * o, P.SHELL_BELT_TOP + 1, _F + o),
     ]
 
 
@@ -454,7 +472,7 @@ def _panel_cuts():
     cuts = []
     if P.BATTERY_LAYOUT == "rear":
         cuts.append(
-            cq.Workplane("XY", origin=(-P.BODY_L / 2 - 20, 0, 96))
+            cq.Workplane("XY", origin=(-P.SHELL_L / 2 - 20, 0, 96))
             .box(70, 300, 100, centered=(True, True, False))
             .edges("|X").fillet(14)
         )
@@ -470,7 +488,7 @@ def _panel_cuts():
 
 def _io_cut():
     return (
-        cq.Workplane("XY", origin=(-P.BODY_L / 2 - 20, 0, P.ESTOP_Z - 20))
+        cq.Workplane("XY", origin=(-P.SHELL_L / 2 - 20, 0, P.ESTOP_Z - 20))
         .box(70, P.IO_PANEL[0], P.IO_PANEL[1], centered=(True, True, False))
         .edges("|X").fillet(8)
     )
@@ -504,7 +522,8 @@ def shell_upper():
     s = _skin(_upper_sections(), P.SHELL_T).cut(_sweep_clearance()).cut(_io_cut())
     flange = (
         cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
-        .placeSketch(_rr(P.SHELL_TOP_L, P.SHELL_TOP_W, 0, _F - 6))
+        .placeSketch(_rr(P.SHELL_TOP_L, P.SHELL_TOP_W, 0,
+                         _F - P.SHELL_SHOULDER - P.SHELL_CROWN))
         .extrude(P.COVER_T)
         .cut(_cover_opening())
     )
@@ -559,7 +578,7 @@ def _band_corner(name):
     """Centre and radius of the band's corner arc at a given wheel corner."""
     o = P.SHELL_BELT_OUT
     r = _F + o
-    cx = (P.BODY_L / 2 + o - r)
+    cx = (P.SHELL_L / 2 + o - r)
     cy = (P.BODY_W / 2 + o - r)
     sx, sy = [(x, y) for n, x, y in P.CORNERS if n == name][0]
     return (cx * (1 if sx > 0 else -1), cy * (1 if sy > 0 else -1), r,
@@ -592,7 +611,7 @@ def _window_solids(grow):
         )
         out = w if out is None else out.union(w)
     cam = (
-        cq.Workplane("XY", origin=(P.BODY_L / 2 + P.SHELL_BELT_OUT - 4, 0, z0))
+        cq.Workplane("XY", origin=(P.SHELL_L / 2 + P.SHELL_BELT_OUT - 4, 0, z0))
         .box(8 + grow, P.CAM_W, z1 - z0, centered=(True, True, False))
     )
     return out.union(cam)
@@ -633,7 +652,7 @@ def shell_light():
         out = seg if out is None else out.union(seg)
     for sx in (1.0, -1.0):
         seg = (
-            cq.Workplane("XY", origin=(sx * (P.BODY_L / 2 - i + 1.5), 0, z))
+            cq.Workplane("XY", origin=(sx * (P.SHELL_L / 2 - i + 1.5), 0, z))
             .box(4, 350, 12, centered=(True, True, False))
         )
         out = out.union(seg)
