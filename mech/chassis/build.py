@@ -27,6 +27,7 @@ PARTS = {
     "steer_bracket": model.steer_bracket,
     "frame": model.frame,
     "shell": model.shell,
+    "shell_panels": model.shell_panels,
 }
 
 
@@ -38,8 +39,8 @@ def mass_report():
     rows = []
     for name, fn in PARTS.items():
         v = _vol(fn())
-        n = 1 if name in ("frame", "shell") else 4
-        rho = P.SHELL_DENSITY if name == "shell" else P.ALU_DENSITY
+        n = 1 if name in ("frame", "shell", "shell_panels") else 4
+        rho = P.SHELL_DENSITY if name.startswith("shell") else P.ALU_DENSITY
         rows.append((name, n, v / 1000.0, n * v * rho))
     return rows
 
@@ -87,7 +88,7 @@ def interference():
     # full lock.
     sweep = model._sweep_clearance()
     for sname, stat in statics.items():
-        if sname in ("frame", "shell"):
+        if sname in ("frame", "shell", "shell_panels"):
             continue
         v = _vol(stat.intersect(sweep))
         if v > 1.0:

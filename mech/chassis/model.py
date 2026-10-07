@@ -368,21 +368,82 @@ def frame():
     return out.cut(_sweep_clearance())
 
 
-def shell():
-    """Outer skin with open corner wheel arches."""
-    h = P.DECK_Z - P.GROUND_CLEARANCE
+def _taper(l0, w0, l1, w1, z0, z1, fillet=22.0):
+    """Frustum between two rounded rectangles.  Ruled, so every face is
+    developable and the whole skin folds from flat sheet."""
+    def sk(l, w, z):
+        return (cq.Sketch().rect(l, w).vertices().fillet(fillet)
+                .moved(cq.Location(cq.Vector(0, 0, z))))
+    return (
+        cq.Workplane("XY")
+        .placeSketch(sk(l0, w0, z0), sk(l1, w1, z1))
+        .loft(ruled=True)
+    )
+
+
+def _panel_cuts():
+    """Boxes that open the skin.  Each one also defines the plate that fills it.
+
+    rear layout: one wide door in the aft face for the battery drawer.
+    side layout: a door in each flank over its pack, the aft face left to the
+    connector panel.
+    """
+    cuts = []
+    if P.BATTERY_LAYOUT == "rear":
+        cuts.append(
+            cq.Workplane("XY", origin=(-P.BODY_L / 2 - 10, 0, 100))
+            .box(60, 300, 190, centered=(True, True, False))
+        )
+    else:
+        for sy in (1.0, -1.0):
+            cuts.append(
+                cq.Workplane("XY", origin=(0, sy * (P.BODY_W / 2 + 10), 96))
+                .box(330, 60, 170, centered=(True, True, False))
+            )
+    # connector and status panel, aft face, above whatever else is there
+    cuts.append(
+        cq.Workplane("XY", origin=(-P.BODY_L / 2 - 10, 0, P.ESTOP_Z + 5))
+        .box(60, P.IO_PANEL[0], P.IO_PANEL[1], centered=(True, True, False))
+    )
+    return cuts
+
+
+def _skin():
+    outer = _taper(P.BODY_L, P.BODY_W, P.SHELL_TOP_L, P.SHELL_TOP_W,
+                   P.GROUND_CLEARANCE, P.DECK_Z)
     t = P.SHELL_T
-    body = (
-        cq.Workplane("XY", origin=(0, 0, P.GROUND_CLEARANCE))
-        .box(P.BODY_L, P.BODY_W, h, centered=(True, True, False))
-        .edges("|Z").fillet(30)
+    inner = _taper(P.BODY_L - 2 * t, P.BODY_W - 2 * t,
+                   P.SHELL_TOP_L - 2 * t, P.SHELL_TOP_W - 2 * t,
+                   P.GROUND_CLEARANCE - 2, P.DECK_Z + 2, fillet=22.0 - t)
+    return outer.cut(inner).cut(_sweep_clearance())
+
+
+def shell():
+    """Fixed skin, with the removable panels taken out of it."""
+    s = _skin()
+    for c in _panel_cuts():
+        s = s.cut(c)
+    return s
+
+
+def shell_panels():
+    """The plates that come off: battery access and the connector panel."""
+    skin = _skin()
+    out = None
+    for c in _panel_cuts():
+        p = skin.intersect(c)
+        out = p if out is None else out.union(p)
+    return out
+
+
+def estop():
+    """Mushroom head on the aft face.  The torso needs its own; this one only
+    covers someone standing behind the base."""
+    return (
+        cq.Workplane("YZ", origin=(-P.BODY_L / 2 + 14, 0, P.ESTOP_Z))
+        .circle(P.ESTOP_OD / 2)
+        .extrude(-30)
     )
-    inner = (
-        cq.Workplane("XY", origin=(0, 0, P.GROUND_CLEARANCE))
-        .box(P.BODY_L - 2 * t, P.BODY_W - 2 * t, h, centered=(True, True, False))
-        .edges("|Z").fillet(30 - t)
-    )
-    return body.cut(inner).cut(_sweep_clearance())
 
 
 def _boxes(packs, l, w, h, z0):
@@ -435,6 +496,9 @@ def chassis(with_shell=True):
     asm.add(battery(), name="battery", color=cq.Color(0.20, 0.20, 0.22))
     asm.add(drivers(), name="drivers", color=cq.Color(0.10, 0.39, 0.10))
     asm.add(electronics(), name="electronics", color=cq.Color(0.33, 0.30, 0.36))
+    if with_shell:
+        asm.add(shell_panels(), name="shell_panels", color=cq.Color(0.42, 0.52, 0.62))
+        asm.add(estop(), name="estop", color=cq.Color(0.72, 0.16, 0.14))
     if with_shell:
         asm.add(shell(), name="shell", color=cq.Color(0.2, 0.45, 0.75, 0.35))
     for name, x, y in P.CORNERS:

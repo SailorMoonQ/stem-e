@@ -160,8 +160,8 @@ SPRING_OD = 32.0
 # Frame
 # --------------------------------------------------------------------------
 
-SHELL_T = 2.0                # non structural skin, PC or ABS sheet
-SHELL_DENSITY = 1.20e-6      # kg/mm^3
+SHELL_DENSITY = 2.70e-6      # kg/mm^3; the skin is 1.5 mm aluminium now,
+                             # folded from flat sheet, not moulded plastic
 ALU_DENSITY = 2.70e-6        # kg/mm^3, 6061-T6
 
 BASE_PLATE_T = 6.0
@@ -189,6 +189,31 @@ TOP_PLATE_Z0 = DECK_Z - TOP_PLATE_T
 # extra floor structure is needed.
 ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
 ELEC_MASS = 2.0
+
+# Deck plate, referenced by the shell so the skin never clips it.
+DECK_L = BODY_L - 40.0
+DECK_W = BODY_W - 160.0
+
+# --------------------------------------------------------------------------
+# Shell: 1.5 mm aluminium, laser cut and folded.  A tapered box is a
+# developable surface, so the hip taper costs nothing in tooling.  The taper is
+# almost all in Y: seen from the front the body narrows going up, seen from the
+# side it is near straight, which is what reads as hips rather than a cart.
+# --------------------------------------------------------------------------
+
+SHELL_T = 1.5
+SHELL_TOP_L = DECK_L + 6.0           # 710, must clear the deck
+
+# How far the waist can pull in is set by the corner modules, not by taste:
+# the steering motor bracket reaches TRACK/2 + HOUSING_W/2 at MODULE_TOP_Z,
+# and the skin has to stay outside it.  Derived so the taper can never quietly
+# grow back into a module.
+_SHELL_F = (MODULE_TOP_Z - GROUND_CLEARANCE) / (DECK_Z - GROUND_CLEARANCE)
+_SHELL_NEED = TRACK / 2 + HOUSING_W / 2 + 5.0
+SHELL_TOP_W = BODY_W - (BODY_W - 2 * _SHELL_NEED) / _SHELL_F
+ESTOP_OD = 40.0
+ESTOP_Z = 300.0
+IO_PANEL = (150.0, 40.0)             # charge port, switch, ethernet, status
 
 LIGHTEN_PITCH = 78.0
 LIGHTEN_D = 64.0

@@ -23,6 +23,8 @@ TOL = 0.55
 COLOURS = {
     "frame": (0.70, 0.72, 0.74),
     "shell": (0.30, 0.52, 0.72),
+    "shell_panels": (0.42, 0.58, 0.74),
+    "estop": (0.72, 0.16, 0.14),
     "battery": (0.17, 0.18, 0.20),
     "drivers": (0.09, 0.42, 0.18),
     "electronics": (0.33, 0.30, 0.36),
@@ -61,6 +63,8 @@ def build_scene():
     scene.add_geometry(_mesh(model.drivers(), "drivers"), node_name="drivers")
     scene.add_geometry(_mesh(model.electronics(), "electronics"), node_name="electronics")
     scene.add_geometry(_mesh(model.shell(), "shell", 0.26), node_name="shell")
+    scene.add_geometry(_mesh(model.shell_panels(), "shell_panels", 0.55), node_name="shell_panels")
+    scene.add_geometry(_mesh(model.estop(), "estop"), node_name="estop")
 
     rails, cell, spring = model.suspension()
     turning = [("wheel", model.hub_motor()), ("yoke", model.steering_yoke()),

@@ -20,6 +20,8 @@ MACHINED = {
     "steer_bracket": (4, P.ALU_DENSITY),
     "frame": (1, P.ALU_DENSITY),
     "shell": (1, P.SHELL_DENSITY),
+    "shell_panels": (1, P.SHELL_DENSITY),
+    "estop": (1, P.ALU_DENSITY),
 }
 
 # name -> (count, mass kg each) for bought-in items modelled as envelopes
