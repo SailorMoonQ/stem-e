@@ -61,7 +61,7 @@ def tipping(curb_kg, curb_cog_mm, wheelbase, track):
 
 
 def main():
-    curb, curb_z, _ = massprops.chassis_mass_properties()
+    curb, curb_z, _, _ = massprops.chassis_mass_properties()
     mine = tipping(curb, curb_z, P.WHEELBASE, P.TRACK)
     ra = tipping(RANGER_AIR["curb_kg"], RANGER_AIR["curb_cog_mm"],
                  RANGER_AIR["wheelbase"], RANGER_AIR["track"])

@@ -96,10 +96,28 @@ def plan(ax, ox, oy):
     ax.add_patch(Rectangle((ox - bp[0] / 2, oy - bp[1] / 2), bp[0], bp[1],
                            fill=False, lw=LW_THIN, ec="k", ls=(0, (4, 2))))
     bt = (P.BATTERY_L * s, P.BATTERY_W * s)
-    ax.add_patch(Rectangle((ox - bt[0] / 2, oy - bt[1] / 2), bt[0], bt[1],
+    bx = ox + P.BATTERY_X * s
+    ax.add_patch(Rectangle((bx - bt[0] / 2, oy - bt[1] / 2), bt[0], bt[1],
                            fill=False, lw=LW_THIN, ec="k"))
-    ax.text(ox, oy + 2.5, "电池 24V 30Ah", ha="center", va="center", fontsize=FSS)
-    ax.text(ox, oy - 3.5, "虚线为底板轮廓", ha="center", va="center", fontsize=FSS)
+    ax.text(bx, oy, "电池 24V 30Ah", ha="center", va="center", fontsize=FSS)
+    for sx in (-1.0, 1.0):
+        cx = ox + sx * P.CROSS_X * s
+        ax.plot([cx, cx], [oy - P.SPINE_Y * s, oy + P.SPINE_Y * s],
+                lw=LW_THIN, color="k", ls=(0, (4, 2)))
+    ax.add_patch(Circle((ox, oy), P.COLUMN_PCD / 2 * s, fill=False, lw=LW_CL, ec="k",
+                        ls=(0, (6, 2, 1, 2))))
+    ax.add_patch(Circle((ox, oy), P.COLUMN_SPIGOT_OD / 2 * s, fill=False, lw=LW_OUT, ec="k"))
+    for i in range(P.COLUMN_BOLTS):
+        a = math.radians(360.0 * i / P.COLUMN_BOLTS)
+        ax.add_patch(Circle((ox + P.COLUMN_PCD / 2 * s * math.cos(a),
+                             oy + P.COLUMN_PCD / 2 * s * math.sin(a)),
+                            4.5 * s, fill=False, lw=LW_OUT, ec="k"))
+    leader(ax, ox + P.COLUMN_PCD / 2 * s * 0.707, oy - P.COLUMN_PCD / 2 * s * 0.707,
+           ox + L / 2 - 2, oy - W / 2 + 6,
+           "升降柱接口 %dxM8 PCD Ø%.0f + Ø%.0f 止口" % (P.COLUMN_BOLTS, P.COLUMN_PCD,
+                                                 P.COLUMN_SPIGOT_OD),
+           ha="right")
+    ax.text(ox, oy - P.SPINE_Y * s - 6, "虚线为底板与横梁", ha="center", va="top", fontsize=FSS)
 
     dim_h(ax, ox - P.WHEELBASE / 2 * s, ox + P.WHEELBASE / 2 * s, oy - W / 2 - 9,
           "轴距 %.0f" % P.WHEELBASE)
@@ -197,7 +215,7 @@ def front(ax, ox, oy):
 
 
 def data_block(ax, x, y):
-    curb, curb_z, _ = massprops.chassis_mass_properties()
+    curb, curb_z, _, _ = massprops.chassis_mass_properties()
     total = curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS
     rows = [
         ("驱动架构", "四轮四转 4WS，零主销偏距"),
@@ -207,6 +225,9 @@ def data_block(ax, x, y):
         ("轴距 x 轮距", "%.0f x %.0f" % (P.WHEELBASE, P.TRACK)),
         ("车体 长宽高", "%.0f x %.0f x %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z)),
         ("离地间隙", "%.0f" % P.GROUND_CLEARANCE),
+        ("升降柱接口", "%d x M8 @ PCD Ø%.0f + Ø%.0f 止口，局部 %.0f mm"
+         % (P.COLUMN_BOLTS, P.COLUMN_PCD, P.COLUMN_SPIGOT_OD,
+            P.TOP_PLATE_T + P.COLUMN_DOUBLER_T)),
         ("底盘整备质量", "%.1f kg，质心高 %.0f mm" % (curb, curb_z)),
         ("设计总质量", "%.1f kg（上半身 %.0f + 负载 %.0f）"
          % (total, P.UPPER_BODY_MASS, P.PAYLOAD_MASS)),
@@ -217,6 +238,7 @@ def data_block(ax, x, y):
          % (P.SUSP_TRAVEL_NOMINAL, P.SUSP_TRAVEL_MECH, P.SUSP_RATE)),
         ("称重", "每角 2 个 %.0f kg，跨主销对称，8 个" % P.LOADCELL_RANGE_KG),
         ("驻车", "无机械刹车，四轮 X 型互锁"),
+        ("电池位置", "后舱 x=%.0f，前舱留给电控" % P.BATTERY_X),
     ]
     h = 6.6 * len(rows) + 8
     ax.add_patch(Rectangle((x, y), 176, h, fill=False, lw=LW_OUT, ec="k"))

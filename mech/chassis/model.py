@@ -263,12 +263,23 @@ def _sweep_clearance():
     return cut
 
 
-def frame():
-    """Base plate, two full length side spines, two cross members, top deck.
+def _bays():
+    """Centres of the two equipment bays, outboard of the cross members."""
+    inner, outer = P.CROSS_X + P.SPINE_T / 2, (P.BODY_L - 40) / 2 - 10
+    c = (inner + outer) / 2
+    return (-c, c)
 
-    The side spines run outside the battery and carry the suspension rails, so
-    each corner module hangs off a continuous plate rather than a bracket.
+
+def frame():
+    """Base plate, two side spines, two cross members, top deck.
+
+    The side spines carry the suspension rails, so each corner module hangs off
+    a continuous plate rather than a bracket.  The cross members sit at
+    ``CROSS_X`` so that they frame the lift column footprint: the column's base
+    moment goes straight into the webs instead of bending the bare deck, which
+    ``frame_budget.py`` shows is the softest path in the whole frame.
     """
+    bay_a, bay_f = _bays()
     base = (
         cq.Workplane("XY", origin=(0, 0, P.BASE_PLATE_Z0))
         .box(P.BASE_PLATE_L, P.BASE_PLATE_W, P.BASE_PLATE_T, centered=(True, True, False))
@@ -276,20 +287,55 @@ def frame():
     base = _lighten(
         base, P.BASE_PLATE_Z0, P.BASE_PLATE_T, P.BASE_PLATE_L / 2, P.BASE_PLATE_W / 2,
         keepouts=[
-            (-P.BATTERY_L / 2 - 20, P.BATTERY_L / 2 + 20, -P.BATTERY_W / 2 - 20, P.BATTERY_W / 2 + 20),
-            (-310, -130, -P.SPINE_Y, P.SPINE_Y),
-            (130, 310, -P.SPINE_Y, P.SPINE_Y),
+            (P.BATTERY_X - P.BATTERY_L / 2 - 20, P.BATTERY_X + P.BATTERY_L / 2 + 20,
+             -P.BATTERY_W / 2 - 20, P.BATTERY_W / 2 + 20),
+            (-P.CROSS_X - 30, P.CROSS_X + 30, -P.SPINE_Y, P.SPINE_Y),
         ],
     )
+
     top_l, top_w = P.BODY_L - 40, P.BODY_W - 160
     top = (
         cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0))
         .box(top_l, top_w, P.TOP_PLATE_T, centered=(True, True, False))
     )
+    sw, sh = P.SERVICE_OPENING
+    for cx in _bays():
+        top = top.cut(
+            cq.Workplane("XY", origin=(cx, 0, P.TOP_PLATE_Z0))
+            .box(sw, sh, P.TOP_PLATE_T, centered=(True, True, False))
+            .edges("|Z").fillet(20)
+        )
     top = _lighten(
         top, P.TOP_PLATE_Z0, P.TOP_PLATE_T, top_l / 2, top_w / 2,
-        keepouts=[(-150, 150, -150, 150)],          # lift column interface, keep solid
+        keepouts=[(-P.COLUMN_PAD, P.COLUMN_PAD, -P.COLUMN_PAD, P.COLUMN_PAD)],
     )
+    top = top.cut(
+        cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0))
+        .pushPoints(_polar(P.COLUMN_PCD, range(0, 360, 360 // P.COLUMN_BOLTS)))
+        .circle(4.5)
+        .extrude(P.TOP_PLATE_T)
+    )
+    # Doubler under the deck.  The cross members already cut the unsupported
+    # span from 260 to 80 mm; doubling the local thickness takes the rest.
+    doubler = (
+        cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0 - P.COLUMN_DOUBLER_T))
+        .box(P.COLUMN_DOUBLER, P.COLUMN_DOUBLER, P.COLUMN_DOUBLER_T,
+             centered=(True, True, False))
+        .edges("|Z").fillet(24)
+    )
+    top = top.union(doubler)
+    top = top.cut(
+        cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0 - P.COLUMN_DOUBLER_T))
+        .circle(P.COLUMN_SPIGOT_OD / 2)
+        .extrude(P.TOP_PLATE_T + P.COLUMN_DOUBLER_T)
+    )
+    top = top.cut(
+        cq.Workplane("XY", origin=(0, 0, P.TOP_PLATE_Z0 - P.COLUMN_DOUBLER_T))
+        .pushPoints(_polar(P.COLUMN_PCD, range(0, 360, 360 // P.COLUMN_BOLTS)))
+        .circle(4.5)
+        .extrude(P.TOP_PLATE_T + P.COLUMN_DOUBLER_T)
+    )
+
     out = base.union(top)
     for sy in (1.0, -1.0):
         y = sy * P.SPINE_Y
@@ -300,12 +346,12 @@ def frame():
         )
         out = out.union(
             cq.Workplane("XY", origin=(0, y, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
-            .box(500, P.SPINE_T, P.SWEEP_CLEAR_Z - P.BASE_PLATE_Z0 - P.BASE_PLATE_T,
+            .box(P.BODY_L - 220, P.SPINE_T, P.SWEEP_CLEAR_Z - P.BASE_PLATE_Z0 - P.BASE_PLATE_T,
                  centered=(True, True, False))
         )
     for sx in (1.0, -1.0):
         out = out.union(
-            cq.Workplane("XY", origin=(sx * 280, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
+            cq.Workplane("XY", origin=(sx * P.CROSS_X, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
             .box(P.SPINE_T, 2 * P.SPINE_Y, P.TOP_PLATE_Z0 - P.BASE_PLATE_Z0 - P.BASE_PLATE_T,
                  centered=(True, True, False))
         )
@@ -315,9 +361,10 @@ def frame():
     for sy in (1.0, -1.0):
         out = _truss(out, "Y", sy * P.SPINE_Y, (P.SWEEP_CLEAR_Z + P.TOP_PLATE_Z0) / 2,
                      (P.BODY_L - 80) / 2, exclude_abs=270.0)
-        out = _truss(out, "Y", sy * P.SPINE_Y, P.BASE_PLATE_Z0 + 50, 250.0, exclude_abs=0.0)
+        out = _truss(out, "Y", sy * P.SPINE_Y, P.BASE_PLATE_Z0 + 50,
+                     (P.BODY_L - 220) / 2, exclude_abs=0.0)
     for sx in (1.0, -1.0):
-        out = _truss(out, "X", sx * 280, (P.BASE_PLATE_Z0 + P.TOP_PLATE_Z0) / 2,
+        out = _truss(out, "X", sx * P.CROSS_X, (P.BASE_PLATE_Z0 + P.TOP_PLATE_Z0) / 2,
                      P.SPINE_Y, exclude_abs=0.0)
     return out.cut(_sweep_clearance())
 
@@ -340,19 +387,26 @@ def shell():
 
 
 def battery():
+    """Rear bay, outboard of the aft cross member and under a service opening."""
     return (
-        cq.Workplane("XY", origin=(0, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
+        cq.Workplane("XY", origin=(P.BATTERY_X, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
         .box(P.BATTERY_L, P.BATTERY_W, P.BATTERY_H, centered=(True, True, False))
     )
 
 
 def drivers():
+    """One DM6540 per corner, flat on the inboard face of the nearest spine.
+
+    Keeping them beside their own motor keeps the three phase leads short,
+    which matters more than tidy grouping at 86 A peak.
+    """
     out = None
     for _, x, y in P.CORNERS:
-        sx = 1.0 if x > 0 else -1.0
+        sy = 1.0 if y > 0 else -1.0
         brd = (
-            cq.Workplane("XY", origin=(x - sx * 170, y * 0.42, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
-            .box(P.DRIVER_L, P.DRIVER_W, P.DRIVER_H, centered=(True, True, False))
+            cq.Workplane("XY", origin=(x * 0.8, sy * (P.SPINE_Y - P.SPINE_T / 2 - P.DRIVER_H / 2),
+                                       P.SWEEP_CLEAR_Z + 30))
+            .box(P.DRIVER_L, P.DRIVER_H, P.DRIVER_W, centered=(True, True, False))
         )
         out = brd if out is None else out.union(brd)
     return out

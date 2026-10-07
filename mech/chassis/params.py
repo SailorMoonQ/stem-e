@@ -135,7 +135,11 @@ SWEEP_CLEAR_R = 92.0         # governed by the tire, 85.5 plus clearance
 SWEEP_CLEAR_Z = 200.0
 
 SPINE_Y = 173.0              # side rail plate centreline, carries the MGN rails
-SPINE_T = 12.0
+SPINE_T = 8.0                # the box is ~25000x stiffer than the load needs;
+                             # see frame_budget.py before thickening this again
+CROSS_X = 155.0              # cross members frame the lift column interface, so
+                             # the column moment goes straight into the webs
+                             # instead of bending the bare deck plate
 LOADCELL_RANGE_KG = 50.0
 LOADCELL_OD = 36.0
 LOADCELL_H = 30.0
@@ -156,6 +160,16 @@ BASE_PLATE_W = 440.0
 
 CORNER_BRACKET_T = 12.0
 TOP_PLATE_T = 6.0
+
+# Lift column interface on the deck.  Proposed here so the upper body has a
+# fixed thing to design against; change it in one place if the column needs
+# something else.  8 x M8 on PCD 200 sees only ~190 N per bolt at 75 Nm.
+COLUMN_PCD = 200.0
+COLUMN_BOLTS = 8
+COLUMN_SPIGOT_OD = 120.0
+COLUMN_PAD = 160.0           # half width of the solid, unlightened deck pad
+COLUMN_DOUBLER = 260.0       # doubler under the deck; local thickness goes to
+COLUMN_DOUBLER_T = 6.0       # 12 mm, which is an 8x cut in local plate bending
 TOP_PLATE_Z0 = DECK_Z - TOP_PLATE_T
 
 LIGHTEN_PITCH = 78.0
@@ -165,6 +179,9 @@ WEB_HOLE_PITCH = 150.0
 
 BATTERY_L, BATTERY_W, BATTERY_H = 260.0, 180.0, 210.0   # 24V 30Ah LiFePO4
 BATTERY_MASS = 8.0
+BATTERY_X = -290.0           # rear bay, outboard of the aft cross member.
+                             # Moving it aft also buys forward tipping margin.
+SERVICE_OPENING = (220.0, 200.0)   # deck cut-out over each equipment bay
 
 # --------------------------------------------------------------------------
 # Mass budget used for the stability check

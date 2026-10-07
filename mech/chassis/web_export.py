@@ -115,7 +115,7 @@ def write_pages(glb_path):
 
     import build as B
     import massprops
-    curb, _, _ = massprops.chassis_mass_properties()
+    curb = massprops.chassis_mass_properties()[0]
     st = B.stability()
     fields = {
         "BODY": "%.0f × %.0f × %.0f" % (P.BODY_L, P.BODY_W, P.DECK_Z),

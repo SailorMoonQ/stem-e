@@ -43,7 +43,7 @@ MODULE_COG_Y_M = 0.010       # module centre of gravity offset from the kingpin
 
 def rail_friction(spring_offset_m):
     """Stiction band at one corner, newtons."""
-    curb, _, _ = massprops.chassis_mass_properties()
+    curb = massprops.chassis_mass_properties()[0]
     total_n = (curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS) * G
     corner_n = total_n / 4.0
     spring_n = corner_n - MODULE_MASS_KG * G
@@ -54,7 +54,7 @@ def rail_friction(spring_offset_m):
 
 def budget(label, friction_n, cell_accuracy):
     """Propagate per corner force error into CoG position and payload mass."""
-    curb, _, _ = massprops.chassis_mass_properties()
+    curb = massprops.chassis_mass_properties()[0]
     total_n = (curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS) * G
     eps = math.hypot(friction_n, cell_accuracy * FS_N)      # per corner, newtons
     combined = 2.0 * eps                                     # rss of four corners
@@ -73,7 +73,7 @@ def budget(label, friction_n, cell_accuracy):
 
 
 def main():
-    curb, cog_z, _ = massprops.chassis_mass_properties()
+    curb, cog_z = massprops.chassis_mass_properties()[:2]
     total = curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS
     print("整车 %.1f kg，单角静载 %.0f N，传感器量程 %.0f N" % (total, total * G / 4, FS_N))
 

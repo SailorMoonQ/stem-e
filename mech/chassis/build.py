@@ -107,7 +107,7 @@ def stability():
     number moves whenever the geometry does.
     """
     g = 9.81
-    curb, curb_z, _ = massprops.chassis_mass_properties()
+    curb, curb_z, _, curb_x = massprops.chassis_mass_properties()
     total = curb + P.UPPER_BODY_MASS + P.PAYLOAD_MASS
     arms = 12.0
     column_head = P.UPPER_BODY_MASS - arms
@@ -119,7 +119,9 @@ def stability():
         + P.PAYLOAD_MASS * P.PAYLOAD_Z
     ) / total
 
-    fwd_static = (arms * P.ARM_REACH_FWD / 2 + P.PAYLOAD_MASS * P.ARM_REACH_FWD) / total
+    # the chassis own fore and aft offset counts against the arm reach
+    fwd_static = (curb * curb_x + arms * P.ARM_REACH_FWD / 2
+                  + P.PAYLOAD_MASS * P.ARM_REACH_FWD) / total
     lat_static = (arms * P.ARM_REACH_LAT / 2 + P.PAYLOAD_MASS * P.ARM_REACH_LAT) / total
     slope = cog_z * math.tan(math.radians(P.FLOOR_SLOPE_DEG))
 
@@ -129,6 +131,7 @@ def stability():
     return {
         "curb_kg": curb,
         "curb_cog_mm": curb_z,
+        "curb_cog_x_mm": curb_x,
         "total_kg": total,
         "cog_height_mm": cog_z,
         "fwd_demand_mm": fwd_need,
