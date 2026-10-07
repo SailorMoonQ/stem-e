@@ -1,0 +1,350 @@
+<title>STEM-E 四轮四转底盘</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#ebebe7; --surface:#fbfbf9; --sunk:#e1e1dc;
+  --ink:#1c1e20; --ink2:#5c6166; --ink3:#8b9196;
+  --line:#d3d4ce; --line2:#bcbdb6;
+  --accent:#1f5b7a; --accent-soft:#dbe8ef; --on-accent:#f7fafb;
+  --brass:#8d6320; --good:#3b6f4c; --warn:#9a5a22;
+  --sans:'IBM Plex Sans','Noto Sans SC',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono','Noto Sans SC',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#15181a; --surface:#1d2124; --sunk:#101314;
+  --ink:#e7e9e7; --ink2:#9aa1a5; --ink3:#6e767b;
+  --line:#2d3337; --line2:#3d454a;
+  --accent:#6aabce; --accent-soft:#1b2d38; --on-accent:#0f1416;
+  --brass:#c99a44; --good:#79b58c; --warn:#d49457;
+}}
+:root[data-theme="dark"]{
+  --ground:#15181a; --surface:#1d2124; --sunk:#101314;
+  --ink:#e7e9e7; --ink2:#9aa1a5; --ink3:#6e767b;
+  --line:#2d3337; --line2:#3d454a;
+  --accent:#6aabce; --accent-soft:#1b2d38; --on-accent:#0f1416;
+  --brass:#c99a44; --good:#79b58c; --warn:#d49457;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55}
+.wrap{min-height:100%;display:flex;flex-direction:column;padding:0 16px;padding-block:16px;max-width:1280px;margin:0 auto;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+h1{font-size:19px;font-weight:500;margin:0;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:12.5px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-left:auto}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 258px;gap:14px;align-items:start}
+.stage{position:relative;background:var(--sunk);border:1px solid var(--line);border-radius:3px;overflow:hidden;aspect-ratio:16/10;min-height:300px}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+.hint{position:absolute;left:10px;bottom:9px;font-family:var(--mono);font-size:10.5px;color:var(--ink3);pointer-events:none}
+.load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--ink2);background:var(--sunk)}
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:12px}
+.panel h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px;font-weight:500}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+button{font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface);border:1px solid var(--line2);border-radius:2px;padding:6px 4px;cursor:pointer;transition:background .12s,border-color .12s}
+button:hover{background:var(--accent-soft);border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.slider{display:flex;align-items:center;gap:9px;margin-top:10px}
+input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.val{font-family:var(--mono);font-size:12px;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.ang{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:10px;font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+.ang div{display:flex;justify-content:space-between;background:var(--sunk);border-radius:2px;padding:3px 6px}
+.ang b{font-weight:500;color:var(--ink2)}
+button.wide{width:100%;margin-bottom:8px}
+.legend{display:flex;flex-direction:column;gap:1px}
+.legend button{display:flex;align-items:center;gap:8px;text-align:left;border:0;border-radius:2px;padding:4px 6px;background:transparent}
+.legend button:hover{background:var(--sunk)}
+.legend button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+.sw{width:11px;height:11px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.2)}
+.legend small{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink3)}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.specs div{background:var(--surface);padding:9px 11px}
+.specs dt{font-size:11.5px;color:var(--ink2);margin:0}
+.specs dd{margin:2px 0 0;font-family:var(--mono);font-size:14.5px;font-variant-numeric:tabular-nums}
+.specs dd span{font-size:11px;color:var(--ink3);margin-left:3px}
+footer{color:var(--ink3);font-size:11.5px;border-top:1px solid var(--line);padding-top:9px}
+footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+@media (max-width:840px){.main{grid-template-columns:1fr}.stage{aspect-ratio:4/3}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>STEM-E 四轮四转底盘</h1>
+    <span class="sub">v1 · {{BODY}} mm · 整备 {{CURB}} kg</span>
+    <span class="eyebrow">mech/chassis</span>
+  </header>
+
+  <div class="main">
+    <div class="stage">
+      <canvas id="cv"></canvas>
+      <div class="load" id="load">载入模型…</div>
+      <div class="hint">拖动旋转 · 滚轮缩放 · 右键平移</div>
+    </div>
+
+    <div class="rail">
+      <section class="panel">
+        <h2>转向姿态</h2>
+        <div class="presets" id="presets"></div>
+        <div class="slider">
+          <input id="sweep" type="range" min="-100" max="100" step="1" value="0" aria-label="统一转向角">
+          <span class="val" id="sweepv">0°</span>
+        </div>
+        <div class="ang" id="angles"></div>
+      </section>
+
+      <section class="panel">
+        <h2>零件</h2>
+        <button id="shelltoggle" class="wide" aria-pressed="false">显示外壳</button>
+        <div class="legend" id="legend"></div>
+      </section>
+    </div>
+  </div>
+
+  <dl class="specs">
+    <div><dt>轴距 × 轮距</dt><dd>{{WB}} × {{TR}}<span>mm</span></dd></div>
+    <div><dt>离地间隙</dt><dd>{{GC}}<span>mm</span></dd></div>
+    <div><dt>额定车速</dt><dd>{{V}}<span>m/s</span></dd></div>
+    <div><dt>峰值牵引力</dt><dd>{{FP}}<span>N</span></dd></div>
+    <div><dt>前倾 / 侧倾安全系数</dt><dd>{{SF}}</dd></div>
+    <div><dt>24V 峰值母线电流</dt><dd>{{IP}}<span>A</span></dd></div>
+  </dl>
+
+  <footer>
+    几何由 <code>mech/chassis/params.py</code> 驱动，模型、图纸与本页面同源。
+    转向软件限位 ±{{LIM}}°，受中空主销内线缆扭转量约束。
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+(function(){
+  var CORNERS = {{CORNERS}};
+  var ORDER = ['FL','FR','RL','RR'];
+  var PARTS = [
+    ['wheel','轮毂电机 DM-H65','#242426','x4'],
+    ['yoke','转向叉','#9ea5a9','x4'],
+    ['kingpin','中空主销','#cc9e33','x4'],
+    ['housing','轴承座','#b3b8bc','x4'],
+    ['steer_motor','转向电机 DM-J4340','#4582b5','x4'],
+    ['steer_bracket','电机支架','#9ea5a9','x4'],
+    ['rails','滚珠导轨','#6b7073','x8'],
+    ['loadcell','称重传感器','#c7544f','x8'],
+    ['spring','模具弹簧','#80b885','x8'],
+    ['frame','车架','#b3b8bc','1'],
+    ['battery','电池','#2c2e33','1'],
+    ['drivers','驱动器 DM6540','#176b2e','x4'],
+    ['shell','外壳','#4d85b8','1']
+  ];
+
+  function deg(r){ return r*180/Math.PI; }
+  function presetAngles(kind){
+    var a = {};
+    ORDER.forEach(function(k){
+      var x = CORNERS[k][0], y = CORNERS[k][1], v = 0;
+      if (kind === 'crab') v = 90;
+      else if (kind === 'spin') v = norm(deg(Math.atan2(x, -y)));
+      else if (kind === 'lock') v = -norm(deg(Math.atan2(x, -y)));
+      else if (kind === 'turn') v = deg(Math.atan2(x, 1000 - y));
+      a[k] = v;
+    });
+    return a;
+  }
+  function norm(d){ while (d > 90) d -= 180; while (d < -90) d += 180; return d; }
+
+  var PRESETS = [
+    ['straight','直行'], ['crab','横移 90°'],
+    ['spin','原地自转'], ['lock','X 型驻车'], ['turn','转弯 R1000']
+  ];
+
+  var angles = {FL:0, FR:0, RL:0, RR:0};
+  var turnNodes = {FL:[], FR:[], RL:[], RR:[]};
+  var byPart = {};
+  var isolated = null;
+  var shellOn = false;        // the mechanism is the point; the skin hides it
+
+  var cv = document.getElementById('cv');
+  var renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(32, 16/10, 0.1, 200);
+  camera.position.set(11.5, 7.2, 10.5);
+  var controls = new THREE.OrbitControls(camera, cv);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.target.set(0, 1.3, 0);
+  controls.minDistance = 4;
+  controls.maxDistance = 48;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x4a4f53, 0.75));
+  var key = new THREE.DirectionalLight(0xffffff, 1.05);
+  key.position.set(9, 14, 7); scene.add(key);
+  var fill = new THREE.DirectionalLight(0xffffff, 0.4);
+  fill.position.set(-8, 5, -9); scene.add(fill);
+
+  function themeColors(){
+    var cs = getComputedStyle(document.documentElement);
+    return {
+      bg: new THREE.Color(cs.getPropertyValue('--sunk').trim() || '#e1e1dc'),
+      grid: new THREE.Color(cs.getPropertyValue('--line2').trim() || '#bcbdb6')
+    };
+  }
+  var grid = new THREE.GridHelper(24, 24);
+  grid.material.transparent = true; grid.material.opacity = 0.5;
+  scene.add(grid);
+  function applyTheme(){
+    var c = themeColors();
+    scene.background = c.bg;
+    grid.material.color = c.grid;
+  }
+  applyTheme();
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    (mq.addEventListener ? mq.addEventListener.bind(mq,'change') : mq.addListener.bind(mq))(applyTheme);
+  }
+
+  var root = new THREE.Group();
+  root.rotation.x = -Math.PI/2;          // model Z up -> three Y up
+  root.scale.setScalar(0.01);            // mm -> display units
+  scene.add(root);
+
+  function base64ToBuffer(uri){
+    var bin = atob(uri.slice(uri.indexOf(',') + 1));
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr.buffer;
+  }
+
+  function onModel(gltf){
+    gltf.scene.traverse(function(o){
+      if (!o.isMesh) return;
+      o.material = o.material.clone();
+      o.material.side = THREE.DoubleSide;
+      var n = o.parent && o.parent.name ? o.parent.name : o.name;
+      var m = /^(turn|fix)_(FL|FR|RL|RR)_(.+)$/.exec(n);
+      var partKey = m ? m[3] : n;
+      (byPart[partKey] = byPart[partKey] || []).push(o);
+      if (m && m[1] === 'turn') turnNodes[m[2]].push(o.parent || o);
+    });
+    gltf.scene.traverse(function(o){
+      var m = /^turn_(FL|FR|RL|RR)_/.exec(o.name || '');
+      if (m && turnNodes[m[1]].indexOf(o) === -1) turnNodes[m[1]].push(o);
+    });
+    root.add(gltf.scene);
+    document.getElementById('load').hidden = true;
+    apply();
+    updateView();
+  }
+
+  function onModelFail(err){
+    document.getElementById('load').textContent =
+      '模型载入失败：' + (err && err.message ? err.message : err);
+  }
+
+  // The model ships inside the page as MODEL_URI and is handed straight to the
+  // parser.  Fetching a data: URI is blocked by the artifact host's CSP, so
+  // loader.load() must not be used for it.
+  var loader = new THREE.GLTFLoader();
+  if (typeof MODEL_URI === 'string') {
+    try { loader.parse(base64ToBuffer(MODEL_URI), '', onModel, onModelFail); }
+    catch (e) { onModelFail(e); }
+  } else {
+    loader.load('chassis.glb', onModel, undefined, onModelFail);
+  }
+
+  function apply(){
+    ORDER.forEach(function(k){
+      var r = angles[k] * Math.PI / 180;
+      turnNodes[k].forEach(function(n){ n.rotation.z = r; });
+    });
+    var box = document.getElementById('angles');
+    box.innerHTML = ORDER.map(function(k){
+      return '<div><b>' + k + '</b><span>' + angles[k].toFixed(1) + '°</span></div>';
+    }).join('');
+  }
+
+  function setPreset(kind, btn){
+    var a = presetAngles(kind);
+    ORDER.forEach(function(k){ angles[k] = a[k]; });
+    document.getElementById('sweep').value = kind === 'crab' ? 90 : 0;
+    document.getElementById('sweepv').textContent = (kind === 'crab' ? 90 : 0) + '°';
+    Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function(b){
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+    apply();
+  }
+
+  var pbox = document.getElementById('presets');
+  PRESETS.forEach(function(p, i){
+    var b = document.createElement('button');
+    b.textContent = p[1];
+    b.setAttribute('aria-pressed', String(i === 0));
+    b.addEventListener('click', function(){ setPreset(p[0], b); });
+    pbox.appendChild(b);
+  });
+
+  var sweep = document.getElementById('sweep');
+  sweep.addEventListener('input', function(){
+    var v = Number(sweep.value);
+    document.getElementById('sweepv').textContent = v + '°';
+    ORDER.forEach(function(k){ angles[k] = v; });
+    Array.prototype.forEach.call(document.querySelectorAll('#presets button'), function(b){
+      b.setAttribute('aria-pressed', 'false');
+    });
+    apply();
+  });
+
+  function updateView(){
+    Object.keys(byPart).forEach(function(k){
+      var dim = isolated !== null && k !== isolated;
+      var base = (k === 'shell') ? 0.3 : 1;
+      byPart[k].forEach(function(o){
+        o.visible = (k !== 'shell') || shellOn || isolated === 'shell';
+        o.material.transparent = dim || base < 1;
+        o.material.opacity = dim ? 0.06 : base;
+        o.material.depthWrite = !dim && base === 1;
+      });
+    });
+    shellBtn.setAttribute('aria-pressed', String(shellOn));
+  }
+
+  var shellBtn = document.getElementById('shelltoggle');
+  shellBtn.addEventListener('click', function(){ shellOn = !shellOn; updateView(); });
+
+  var lbox = document.getElementById('legend');
+  PARTS.forEach(function(p){
+    var b = document.createElement('button');
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="sw" style="background:' + p[2] + '"></span>' +
+                  '<span>' + p[1] + '</span><small>' + p[3] + '</small>';
+    b.addEventListener('click', function(){
+      isolated = (isolated === p[0]) ? null : p[0];
+      Array.prototype.forEach.call(lbox.children, function(c){
+        c.setAttribute('aria-pressed', String(c === b && isolated !== null));
+      });
+      updateView();
+    });
+    lbox.appendChild(b);
+  });
+
+  function resize(){
+    var r = cv.parentElement.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  (function loop(){
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+})();
+</script>
