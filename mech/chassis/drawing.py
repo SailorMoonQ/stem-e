@@ -16,7 +16,7 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Rectangle
+from matplotlib.patches import Arc, Circle, Rectangle
 
 import massprops
 import params as P
@@ -143,25 +143,23 @@ def plan(ax, ox, oy):
 
 
 def _body_with_arches(ax, ox, oy, half_span, centres, s):
-    """Elevation outline of the shell, with a wheel opening at each corner."""
-    z0, z1 = P.GROUND_CLEARANCE * s, P.DECK_Z * s
-    za = P.SWEEP_CLEAR_Z * s
-    r = P.SWEEP_CLEAR_R * s
+    """Elevation outline of the shell, with a wheel arch at each corner."""
+    z0, z1 = P.SKIRT_BOTTOM_Z * s, P.DECK_Z * s
+    r, cz = P.ARCH_R * s, P.ARCH_CZ * s
+    dx = math.sqrt(P.ARCH_R ** 2 - (P.SKIRT_BOTTOM_Z - P.ARCH_CZ) ** 2)
+    th = math.degrees(math.atan2(P.SKIRT_BOTTOM_Z - P.ARCH_CZ, dx))
     ax.plot([ox - half_span, ox + half_span], [oy + z1, oy + z1], lw=LW_OUT, color="k")
     for sgn in (-1, 1):
-        ax.plot([ox + sgn * half_span] * 2, [oy + za, oy + z1], lw=LW_OUT, color="k")
-    edges = sorted([ox + c * s + sgn * r for c in centres for sgn in (-1, 1)])
-    for a, b in ((edges[1], edges[2]),):
-        ax.plot([a, b], [oy + z0, oy + z0], lw=LW_OUT, color="k")
+        ax.plot([ox + sgn * half_span] * 2, [oy + z0, oy + z1], lw=LW_OUT, color="k")
+    feet = []
     for c in centres:
-        inner = ox + c * s + (r if c < 0 else -r)
-        ax.plot([inner, inner], [oy + z0, oy + za], lw=LW_OUT, color="k")
-        outer = ox + c * s + (-r if c < 0 else r)
-        ax.plot([min(inner, outer) if False else outer,
-                 ox + (half_span if c > 0 else -half_span)],
-                [oy + za, oy + za], lw=LW_OUT, color="k")
-        ax.plot([ox + c * s - r, ox + c * s + r], [oy + za, oy + za], lw=LW_OUT, color="k")
-
+        cx = ox + c * s
+        ax.add_patch(Arc((cx, oy + cz), 2 * r, 2 * r, theta1=th, theta2=180 - th,
+                         lw=LW_OUT, ec="k"))
+        feet += [cx - dx * s, cx + dx * s]
+    pts = [ox - half_span] + sorted(feet) + [ox + half_span]
+    for a, b in zip(pts[0::2], pts[1::2]):
+        ax.plot([a, b], [oy + z0, oy + z0], lw=LW_OUT, color="k")
 
 def side(ax, ox, oy):
     """Elevation looking along +Y.  ``oy`` is the ground line."""
@@ -180,8 +178,10 @@ def side(ax, ox, oy):
         ax.plot([ox - L * 0.22, ox + L * 0.22], [oy + z * s, oy + z * s],
                 lw=LW_THIN, color="k", ls=(0, (4, 2)))
         ax.text(ox, oy + z * s + 1, lab, fontsize=FSS, ha="center", va="bottom")
-    dim_v(ax, oy, oy + P.GROUND_CLEARANCE * s, ox - L / 2 - 7,
-          "离地 %.0f" % P.GROUND_CLEARANCE)
+    dim_v(ax, oy, oy + P.SKIRT_BOTTOM_Z * s, ox - L / 2 - 7,
+          "裙板下沿 %.0f" % P.SKIRT_BOTTOM_Z)
+    dim_v(ax, oy, oy + P.GROUND_CLEARANCE * s, ox + L / 2 + 7,
+          "腹部离地 %.0f" % P.GROUND_CLEARANCE)
     dim_v(ax, oy, oy + P.HUB_TIRE_OD * s, ox - L / 2 - 17, "Ø%.0f" % P.HUB_TIRE_OD)
     dim_v(ax, oy, oy + P.DECK_Z * s, ox + L / 2 + 7, "全高 %.0f" % P.DECK_Z)
     ax.text(ox - L / 2, oy + P.DECK_Z * s + 5, "侧视图", fontsize=8)
@@ -231,7 +231,9 @@ def data_block(ax, x, y):
         ("驱动器", "DM6540-1EC x4，分体式，车内安装"),
         ("轴距 x 轮距", "%.0f x %.0f" % (P.WHEELBASE, P.TRACK)),
         ("车体 长宽高", "%.0f x %.0f x %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z)),
-        ("离地间隙", "%.0f" % P.GROUND_CLEARANCE),
+        ("离地间隙", "腹部 %.0f, 裙板下沿 %.0f" % (P.GROUND_CLEARANCE, P.SKIRT_BOTTOM_Z)),
+        ("轮眉", "R%.0f @ 轮轴上方 %.0f, 眉骨 %.0f" % (
+            P.ARCH_R, P.ARCH_CZ - P.WHEEL_AXIS_Z, P.SHELL_SKIRT_TOP - P.ARCH_CZ - P.ARCH_R)),
         ("升降柱接口", "%d x M8 @ PCD Ø%.0f + Ø%.0f 止口，局部 %.0f mm"
          % (P.COLUMN_BOLTS, P.COLUMN_PCD, P.COLUMN_SPIGOT_OD,
             P.TOP_PLATE_T + P.COLUMN_DOUBLER_T)),

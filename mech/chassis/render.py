@@ -19,6 +19,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 
 ALU = "#b8bcc0"
+# The yoke top plate spans the top of the wheel and is the one machined
+# part you see through the arch.  There is 3 mm between it and the tire
+# crown at full bump, so nothing can shroud it; it gets anodized instead.
+ANODIZED = "#3b3e42"
 PARTS = [
     ("frame", lambda: model.frame(), ALU, 1.0),
     ("battery", lambda: model.battery(), "#303338", 1.0),
@@ -27,7 +31,7 @@ PARTS = [
 ]
 MODULE_PARTS = [
     ("wheel", model.hub_motor, "#2b2b2e", 1.0),
-    ("yoke", model.steering_yoke, "#9aa0a6", 1.0),
+    ("yoke", model.steering_yoke, ANODIZED, 1.0),
     ("kingpin", model.kingpin_tube, "#c89b2c", 1.0),
     ("housing", model.bearing_housing, ALU, 1.0),
     ("steer_motor", model.steer_motor, "#4a7fb5", 1.0),

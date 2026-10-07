@@ -404,6 +404,32 @@ def _inner_z(sections):
 _F = P.SHELL_FILLET
 
 
+def _wheel_wells(grow=0.0):
+    """The cavity each wheel lives in: sweep cylinder inboard, car arch at the skin.
+
+    The sweep cylinder is the real clearance and governs everything the wheel
+    can reach.  The arch is a cylinder lying along Y, centred on the wheel
+    axis, and only exists outboard of the wheel's outer face, where it is the
+    larger of the two and so is what the skin opening ends up being.
+    """
+    out = None
+    for _, cx, cy in P.CORNERS:
+        s = 1.0 if cy > 0 else -1.0
+        well = (
+            cq.Workplane("XY", origin=(cx, cy, 0))
+            .circle(P.SWEEP_CLEAR_R + grow)
+            .extrude(P.SWEEP_CLEAR_Z)
+        )
+        arch = (
+            cq.Workplane("XZ", origin=(cx, s * P.ARCH_INNER_Y, P.ARCH_CZ))
+            .circle(P.ARCH_R + grow)
+            .extrude(-s * (P.BODY_W / 2 + 40 - P.ARCH_INNER_Y))
+        )
+        w = well.union(arch)
+        out = w if out is None else out.union(w)
+    return out
+
+
 def _skirt_sections():
     """Tapers all the way up instead of standing straight.
 
@@ -413,7 +439,7 @@ def _skirt_sections():
     """
     tuck = P.SHELL_BOTTOM_TUCK
     return [
-        (P.SHELL_L - 2 * tuck, P.BODY_W - 2 * tuck, P.GROUND_CLEARANCE, _F - tuck / 2),
+        (P.SHELL_L - 2 * tuck, P.BODY_W - 2 * tuck, P.SKIRT_BOTTOM_Z, _F - tuck / 2),
         (P.SHELL_L, P.BODY_W, P.SHELL_SKIRT_TOP, _F),
     ]
 
@@ -498,7 +524,7 @@ def shell_skirt():
     """Lower volume.  No grips, no vents, no rail: on an Axiom machine the
     surface is unbroken except for the band.  Lifting points live on the deck,
     which is already a dark inset plate and can take flush recessed eyes."""
-    s = _skin(_skirt_sections(), P.SHELL_T).cut(_sweep_clearance())
+    s = _skin(_skirt_sections(), P.SHELL_T).cut(_wheel_wells())
     for c in _panel_cuts():
         s = s.cut(c)
 
@@ -519,7 +545,7 @@ def shell_upper():
     into it rather than a black lid sitting on a white box, and it is also the
     only thing closing the gap between the narrow deck plate and the skin.
     """
-    s = _skin(_upper_sections(), P.SHELL_T).cut(_sweep_clearance()).cut(_io_cut())
+    s = _skin(_upper_sections(), P.SHELL_T).cut(_wheel_wells()).cut(_io_cut())
     flange = (
         cq.Workplane("XY", origin=(0, 0, P.DECK_Z))
         .placeSketch(_rr(P.SHELL_TOP_L, P.SHELL_TOP_W, 0,
@@ -535,44 +561,32 @@ def _grown(sections, d):
 
 
 def shell_arch_liner():
-    """Shroud between the wheel and the inside of the body.
+    """Shroud lining the whole well, right out to the lip of the arch.
 
-    Its outer rim turns back on itself and fills the thickness of the skirt, so
-    the opening is bounded by a folded return rather than by a sheared 1.5 mm
-    edge at shin height.  That is how the hem gets done in sheet metal, and it
-    is why there is no separate trim ring: a ring of constant radial width in
-    plan turns into a sail where the skirt runs tangent to the radius, which is
-    exactly at the body corner.
+    Taking the outer 2 mm of the cavity rather than hanging a separate ring on
+    the skin means the liner meets the opening edge by construction, so the
+    sheared edge is covered without a trim part: a ring of constant radial
+    width in plan becomes a sail where the skirt runs tangent to the radius,
+    which is exactly at the body corner, and that is what the earlier flare
+    rendered as.
     """
-    out = None
     body = _loft(_skirt_sections())
+    liner = _wheel_wells().cut(_wheel_wells(-P.ARCH_LINER_T)).intersect(body)
+    # Back wall of the well, where the arch steps down onto the sweep cylinder.
+    # Without it the shell of a cavity has a hole at that step and daylight
+    # shows through beside the wheel.
     for _, cx, cy in P.CORNERS:
-        # Stops at SWEEP_CLEAR_Z, not at the skirt top: above that nothing
-        # sweeps, the frame is not cut back, and a liner would run into it.
-        h = P.SWEEP_CLEAR_Z - P.GROUND_CLEARANCE
-        wall = (
-            cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
-            .circle(P.SWEEP_CLEAR_R)
-            .extrude(h)
-            .cut(cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
-                 .circle(P.SWEEP_CLEAR_R - 2.0)
-                 .extrude(h))
+        s = 1.0 if cy > 0 else -1.0
+        cap = (
+            cq.Workplane("XZ", origin=(cx, s * P.ARCH_INNER_Y, P.ARCH_CZ))
+            .circle(P.ARCH_R)
+            .extrude(s * P.ARCH_LINER_T)
+            .cut(cq.Workplane("XY", origin=(cx, cy, 0))
+                 .circle(P.SWEEP_CLEAR_R).extrude(P.SWEEP_CLEAR_Z))
+            .intersect(body)
         )
-        w = wall.intersect(body)
-        # The returned rim: a short collar at the opening, flush with the skin.
-        rim = (
-            cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
-            .circle(P.SWEEP_CLEAR_R + P.SHELL_T)
-            .extrude(h)
-            .cut(cq.Workplane("XY", origin=(cx, cy, P.GROUND_CLEARANCE))
-                 .circle(P.SWEEP_CLEAR_R)
-                 .extrude(h))
-            .intersect(_skin(_skirt_sections(), P.SHELL_T))
-        )
-        w = w.union(rim)
-        out = w if out is None else out.union(w)
-    return out
-
+        liner = liner.union(cap)
+    return liner
 
 def _band_corner(name):
     """Centre and radius of the band's corner arc at a given wheel corner."""
@@ -630,7 +644,7 @@ def shell_belt():
     bumper standing proud of the body, so nothing on this machine is there only
     to be looked at.
     """
-    band = _skin(_belt_sections(), P.SHELL_BELT_OUT + P.SHELL_T).cut(_sweep_clearance())
+    band = _skin(_belt_sections(), P.SHELL_BELT_OUT + P.SHELL_T).cut(_wheel_wells())
     return band.cut(_window_solids(4.0))
 
 
@@ -715,8 +729,8 @@ def shell():
 
 def shell_panels():
     """The plates that come off: battery access and the connector panel."""
-    skirt = _skin(_skirt_sections(), P.SHELL_T).cut(_sweep_clearance())
-    upper = _skin(_upper_sections(), P.SHELL_T).cut(_sweep_clearance())
+    skirt = _skin(_skirt_sections(), P.SHELL_T).cut(_wheel_wells())
+    upper = _skin(_upper_sections(), P.SHELL_T).cut(_wheel_wells())
     out = None
     for c in _panel_cuts():
         p = skirt.intersect(c)

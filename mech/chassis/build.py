@@ -99,6 +99,20 @@ def interference():
         v = _vol(stat.intersect(sweep))
         if v > 1.0:
             findings.append(("--", sname, "INSIDE_STEERING_SWEEP", v))
+    # The arch is a drawn shape, not the swept envelope, so the tire is run
+    # through the corner of its own envelope against it: full bump, and lock
+    # from straight ahead to ninety degrees.
+    wells = model._wheel_wells()
+    for cname, cx, cy in P.CORNERS:
+        tire = model.hub_motor()
+        tire = tire.mirror("XZ") if cy < 0 else tire
+        tire = tire.translate((cx, cy, P.SUSP_TRAVEL_MECH))
+        for ang in (0.0, 30.0, 60.0, 90.0):
+            t = tire.rotate((cx, cy, 0), (cx, cy, 1), ang)
+            v = _vol(t.cut(wells))
+            if v > 1.0:
+                findings.append((cname, "tire @%.0f bump" % ang, "OUTSIDE_WELL", v))
+
     # Nothing mounted inside may cross the skin.  The upper shell draws in
     # 50 mm per side on the way to the deck, so a box that clears the body
     # width down at the band can still be through the surface at the top.

@@ -13,6 +13,7 @@ Vendor numbers in COMPONENTS are measured from the official STEP models and
   https://github.com/dmBots/DM-J4340-2EC
 """
 
+import math
 import os
 
 # --------------------------------------------------------------------------
@@ -240,6 +241,39 @@ COVER_GAP = 1.0                      # shadow line between pad and flange
 # Length is free here: the door is passed by crabbing and what it measures is
 # the width (see sizing.py), which is untouched at 616.  What does move is the
 # diagonal, 966 -> 1053, still inside a 1200 corridor for a spin in place.
+# The skin reaches below the frame.  80 mm is the belly's ground clearance, a
+# frame requirement; the skirt out at the perimeter has nothing under it but
+# floor, so it drops to 45 and covers the wheel down to near the axle instead
+# of stopping level with the hub centre.
+SKIRT_BOTTOM_Z = 45.0
+
+# Wheel arch, drawn rather than fallen out of a boolean.  Cut by the bare
+# steering sweep the opening was a vesica: the sweep cylinder runs tangent to
+# the skirt at the top, so the hole closed to a point at the skirt top edge.
+#
+# What the skin actually has to clear is much less than the sweep itself,
+# because the skirt stands 50 mm outboard of the wheel: +-52 mm at the bottom
+# edge, narrowing upward, and nothing at all above 183 (the tire crown at full
+# bump).  Over that envelope the worst case needs R 99.6 about the wheel axis,
+# so a car arch at R 105 contains it with margin and leaves a real crown under
+# the band.
+# Centred above the axle, the way a car arch is, so the lower lip closes in on
+# the tire instead of standing off it: at the skirt's bottom edge the arch is
+# narrower than the tire, which is what covering the wheel means.  Centred on
+# the axle it needed R 105 and left a 19.5 mm crescent all the way round.
+ARCH_CZ = WHEEL_AXIS_Z + 9.5
+ARCH_R = 95.0
+ARCH_INNER_Y = 200.0                 # the arch runs in behind the wheel, so the
+                                     # step down to the sweep cylinder is hidden
+ARCH_LINER_T = 2.0
+
+# The arch is drawn, not derived, so both sides of it are asserted.  Build.py
+# additionally sweeps the tire through bump and lock against the modelled well.
+_tire_bump = WHEEL_AXIS_Z + SUSP_TRAVEL_MECH
+_tire_corner = math.hypot(HUB_TREAD_W / 2, HUB_TIRE_OD / 2)   # at 90 deg lock
+assert ARCH_R - (abs(_tire_bump - ARCH_CZ) + _tire_corner) >= 3.0, (
+    "arch fouls the tire at full bump and lock: %.1f mm"
+    % (ARCH_R - (abs(_tire_bump - ARCH_CZ) + _tire_corner)))
 SHELL_OVERHANG = 60.0
 SHELL_L = BODY_L + 2 * SHELL_OVERHANG
 
