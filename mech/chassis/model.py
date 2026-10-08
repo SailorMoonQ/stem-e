@@ -95,14 +95,26 @@ def steering_yoke():
     """CNC aluminium yoke: hub flange pad, riser web, top plate."""
     y1 = -P.HUB_FLANGE_OFFSET                 # -37.84, flange mounting face
     y0 = y1 - P.YOKE_PLATE_T                  # -53.84
-    web = (
-        cq.Workplane("XY")
-        .box(90, P.YOKE_PLATE_T, P.YOKE_TOP_Z1 - 37.5, centered=(True, False, False))
-        .translate((0, y0, 37.5))
+    # Round pad at the flange, tapering up to meet the top plate.  It used to
+    # be a solid 90 x 156 slab reaching 48 mm below the axle, where there is
+    # no load path at all.
+    r, hw = P.YOKE_PAD_R, P.YOKE_WEB_W / 2
+    profile = (
+        cq.Workplane("XZ")
+        .moveTo(-r, P.WHEEL_AXIS_Z)
+        .lineTo(-hw, P.YOKE_TOP_Z1)
+        .lineTo(hw, P.YOKE_TOP_Z1)
+        .lineTo(r, P.WHEEL_AXIS_Z)
+        .close()
+        .extrude(-P.YOKE_PLATE_T)
+        .union(cq.Workplane("XZ", origin=(0, 0, P.WHEEL_AXIS_Z))
+               .circle(r).extrude(-P.YOKE_PLATE_T))
+        .translate((0, y1, 0))
     )
+    web = profile
     top = (
         cq.Workplane("XY")
-        .box(104, 88.84, P.YOKE_TOP_T, centered=(True, False, False))
+        .box(P.YOKE_TOP_W, 88.84, P.YOKE_TOP_T, centered=(True, False, False))
         .translate((0, y0, P.YOKE_TOP_Z0))
     )
     yoke = web.union(top)
@@ -113,7 +125,7 @@ def steering_yoke():
         (P.HUB_FLANGE_DOWEL_D, _polar(P.HUB_FLANGE_PCD, P.HUB_FLANGE_DOWEL_ANGLES)),
     ):
         yoke = yoke.cut(pad.pushPoints(pts).circle(d / 2).extrude(P.YOKE_PLATE_T))
-    yoke = yoke.cut(pad.circle(10).extrude(P.YOKE_PLATE_T))          # cable pass
+    yoke = yoke.cut(pad.circle(P.YOKE_CABLE_D / 2).extrude(P.YOKE_PLATE_T))
 
     bore = (
         cq.Workplane("XY", origin=(0, 0, P.YOKE_TOP_Z0))
@@ -270,14 +282,19 @@ def _bays():
     return (-c, c)
 
 
-def frame():
-    """Base plate, two side spines, two cross members, top deck.
+def frame_members():
+    """The frame as named pieces: base plate, deck, side spines, cross members.
 
     The side spines carry the suspension rails, so each corner module hangs off
     a continuous plate rather than a bracket.  The cross members sit at
     ``CROSS_X`` so that they frame the lift column footprint: the column's base
     moment goes straight into the webs instead of bending the bare deck, which
     ``frame_budget.py`` shows is the softest path in the whole frame.
+
+    Returned piece by piece because the stiffness budget has to be measured on
+    the same geometry that gets built.  It used to re-declare the frame by
+    hand and had already drifted: the lower spine was 500 long there against
+    524 here.
     """
     bay_a, bay_f = _bays()
     base = (
@@ -338,37 +355,54 @@ def frame():
         .extrude(P.TOP_PLATE_T + P.COLUMN_DOUBLER_T)
     )
 
-    out = base.union(top)
+    spines = None
     for sy in (1.0, -1.0):
         y = sy * P.SPINE_Y
-        out = out.union(
+        s = (
             cq.Workplane("XY", origin=(0, y, P.SWEEP_CLEAR_Z))
             .box(P.BODY_L - 80, P.SPINE_T, P.TOP_PLATE_Z0 - P.SWEEP_CLEAR_Z,
                  centered=(True, True, False))
         )
-        out = out.union(
+        s = s.union(
             cq.Workplane("XY", origin=(0, y, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
             .box(P.BODY_L - 220, P.SPINE_T, P.SWEEP_CLEAR_Z - P.BASE_PLATE_Z0 - P.BASE_PLATE_T,
                  centered=(True, True, False))
         )
+        # Turn the solid web into a truss, keeping material solid where the
+        # suspension rails and the corner modules bolt on.
+        s = _truss(s, "Y", y, (P.SWEEP_CLEAR_Z + P.TOP_PLATE_Z0) / 2,
+                   (P.BODY_L - 80) / 2, exclude_abs=270.0)
+        s = _truss(s, "Y", y, P.BASE_PLATE_Z0 + 50,
+                   (P.BODY_L - 220) / 2, exclude_abs=0.0)
+        spines = s if spines is None else spines.union(s)
+
+    cross = None
     for sx in (1.0, -1.0):
-        out = out.union(
+        c = (
             cq.Workplane("XY", origin=(sx * P.CROSS_X, 0, P.BASE_PLATE_Z0 + P.BASE_PLATE_T))
             .box(P.SPINE_T, 2 * P.SPINE_Y, P.TOP_PLATE_Z0 - P.BASE_PLATE_Z0 - P.BASE_PLATE_T,
                  centered=(True, True, False))
         )
+        c = _truss(c, "X", sx * P.CROSS_X, (P.BASE_PLATE_Z0 + P.TOP_PLATE_Z0) / 2,
+                   P.SPINE_Y, exclude_abs=0.0)
+        cross = c if cross is None else cross.union(c)
 
-    # Turn the solid webs into trusses, keeping material solid where the
-    # suspension rails and the corner modules bolt on.
-    for sy in (1.0, -1.0):
-        out = _truss(out, "Y", sy * P.SPINE_Y, (P.SWEEP_CLEAR_Z + P.TOP_PLATE_Z0) / 2,
-                     (P.BODY_L - 80) / 2, exclude_abs=270.0)
-        out = _truss(out, "Y", sy * P.SPINE_Y, P.BASE_PLATE_Z0 + 50,
-                     (P.BODY_L - 220) / 2, exclude_abs=0.0)
-    for sx in (1.0, -1.0):
-        out = _truss(out, "X", sx * P.CROSS_X, (P.BASE_PLATE_Z0 + P.TOP_PLATE_Z0) / 2,
-                     P.SPINE_Y, exclude_abs=0.0)
-    return out.cut(_sweep_clearance())
+    sweep = _sweep_clearance()
+    return [
+        ("base plate %.0fx%.0f t%.0f" % (P.BASE_PLATE_L, P.BASE_PLATE_W, P.BASE_PLATE_T),
+         base.cut(sweep)),
+        ("deck %.0fx%.0f t%.0f" % (P.DECK_L, P.DECK_W, P.TOP_PLATE_T), top.cut(sweep)),
+        ("side spines x2 t%.0f" % P.SPINE_T, spines.cut(sweep)),
+        ("cross members x2 t%.0f" % P.SPINE_T, cross.cut(sweep)),
+    ]
+
+
+def frame():
+    """The frame as one solid, assembled from the same pieces as the budget."""
+    out = None
+    for _, s in frame_members():
+        out = s if out is None else out.union(s)
+    return out
 
 
 def _rr(l, w, z, r):

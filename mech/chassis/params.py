@@ -101,6 +101,22 @@ TIRE_TOP_Z = HUB_TIRE_OD                  # 171.0
 
 YOKE_PLATE_T = 16.0          # vertical plate that bolts to the hub flange
 YOKE_TOP_T = 14.0
+YOKE_TOP_W = 104.0           # top plate, spans the web across to the kingpin
+YOKE_WEB_W = 90.0            # web width where it meets the top plate
+
+# Pad around the hub flange.  Big enough to cover the bolt heads with a wall;
+# below that the web is a tapered riser, not the solid 90 x 156 slab it was.
+# Nothing sizes that slab: the worst of weight, traction and the single sided
+# flange offset is 0.9% of yield (frame_budget.yoke_checks).
+YOKE_PAD_R = 26.0
+
+# The cable leaves the hub through the middle of the flange, so the pass has
+# to live inside the bolt circle.  At 20 it broke into all six M5 clearance
+# holes by 0.25 mm and left 0.5 mm to the dowels, which is no wall at all.
+YOKE_CABLE_WALL = 3.0
+YOKE_CABLE_D = 2.0 * (HUB_FLANGE_PCD / 2.0
+                      - max(5.5, HUB_FLANGE_DOWEL_D) / 2.0
+                      - YOKE_CABLE_WALL)
 YOKE_TOP_Z0 = 180.0          # 9 mm clear over the tire
 YOKE_TOP_Z1 = YOKE_TOP_Z0 + YOKE_TOP_T    # 194.0
 
@@ -148,7 +164,7 @@ SUSP_RATE = 44.0             # N/mm per corner, 1/4 curb weight -> 5 mm
 RAIL_LEN = 110.0
 RAIL_PITCH_X = 72.0          # two MGN12 rails straddling the kingpin
 RAIL_Z0 = 196.0              # must clear the yoke sweep, which tops out at 194
-RAIL_Y = -65.0               # local, rail body spans -71..-59; carriage -59..-46
+RAIL_W = 12.0                # MGN12 rail body, square section
 # Two springs and two load cells per corner, straddling the kingpin at y = 0.
 # A single offset spring puts its force times its offset onto the rail
 # carriages as a moment; that normal load is what makes them stick, and the
@@ -165,8 +181,17 @@ SWEEP_CLEAR_R = WHEEL_SWEEP_OD / 2   # governed by the tire, 85.5 plus clearance
 SWEEP_CLEAR_Z = 200.0
 
 SPINE_Y = TRACK / 2 - 75.0   # side rail plate centreline, carries the MGN rails
-SPINE_T = 8.0                # the box is ~25000x stiffer than the load needs;
-                             # see frame_budget.py before thickening this again
+# 8 mm was never sized by load.  frame_budget checks the three local paths
+# that could have justified it - the rail screws' thread engagement, bearing
+# at those holes, and web shear buckling - and the worst is 5% utilised even
+# at 3 mm, on top of a box that is two to three orders over on bending and
+# torsion.  What sets it is workmanship: the MGN12 rails are tapped straight
+# into this web with M3, and tapped aluminium wants two diameters of thread.
+SPINE_T = 2.0 * 3.0          # 2 x M3, the rule that actually sizes it
+# Derived, not typed: the rail sits flat on the spine's outer face, so this
+# has to follow SPINE_T.  It used to be -65, which happened to be right at
+# 8 mm and would have left the rail floating at any other thickness.
+RAIL_Y = (SPINE_Y + SPINE_T / 2.0) - TRACK / 2.0 + RAIL_W / 2.0
 CROSS_X = 155.0              # cross members frame the lift column interface, so
                              # the column moment goes straight into the webs
                              # instead of bending the bare deck plate
@@ -183,7 +208,12 @@ SHELL_DENSITY = 2.70e-6      # kg/mm^3; the skin is 1.5 mm aluminium now,
                              # folded from flat sheet, not moulded plastic
 ALU_DENSITY = 2.70e-6        # kg/mm^3, 6061-T6
 
-BASE_PLATE_T = 6.0
+# Unlike the spines, this one is sized by load: it is the tray the pack sits
+# on, and frame_budget.base_plate_checks puts the bending under it at 47% of
+# allowable here, 82% at 4 mm and over at 3.  4 mm opens up if the pack is
+# bolted to the spines instead of to the middle of the tray, which would cut
+# the span; that is a mounting decision nobody has made yet.
+BASE_PLATE_T = 5.0
 BASE_PLATE_Z0 = GROUND_CLEARANCE + 1.5    # sits on the belly pan, which
                                           # is therefore the only bottom
                                           # surface: the base plate keeps
