@@ -153,6 +153,12 @@ def steering_yoke():
         .circle(P.YOKE_CABLE_SLOT_W / 2).extrude(P.YOKE_PLATE_T))
     yoke = yoke.cut(pad.circle(P.YOKE_CABLE_D / 2).extrude(P.YOKE_PLATE_T))
 
+    # The loom's own path, inflated, is the cutter: the channel then fits by
+    # construction.  Going radial and then straight through the web put two
+    # 90 degree bends 7 mm apart, which no loom will do; one slanted run
+    # crosses it in a pair of 15 degree bends instead.
+    yoke = yoke.cut(_pipe(cable_path(), P.CABLE_D + 2 * P.CABLE_CLEAR))
+
     bore = (
         cq.Workplane("XY", origin=(0, 0, P.YOKE_TOP_Z0))
         .circle(P.KINGPIN_ID / 2)
@@ -165,6 +171,61 @@ def steering_yoke():
         .extrude(P.YOKE_TOP_T)
     )
     return yoke.cut(bore).cut(bolts)
+
+
+def _pipe(points, d):
+    """A round bundle following a polyline, with its corners rounded over."""
+    r = d / 2.0
+    out = None
+    for a, b in zip(points, points[1:]):
+        v = cq.Vector(*b) - cq.Vector(*a)
+        if v.Length < 1e-6:
+            continue
+        seg = cq.Workplane(obj=cq.Solid.makeCylinder(
+            r, v.Length, cq.Vector(*a), v.normalized()))
+        out = seg if out is None else out.union(seg)
+    for pt in points[1:-1]:
+        ball = cq.Workplane(obj=cq.Solid.makeSphere(
+            r, cq.Vector(*pt), angleDegrees1=-90, angleDegrees2=90))
+        out = out.union(ball)
+    return out
+
+
+def hub_cable():
+    """The hub's loom, from the flange out to the top of the kingpin bore.
+
+    Modelled because the route was an argument, not a drawing: it leaves the
+    centre of the flange in a boot that turns against the face, runs up the
+    channel in the land, crosses the web and climbs to the bore.  Above the
+    kingpin it has to twist with steering, which needs a service loop that is
+    not drawn here.
+    """
+    y1 = -P.HUB_FLANGE_OFFSET
+    path = cable_path()
+    boot = cq.Workplane(obj=cq.Solid.makeCylinder(
+        P.BOOT_D / 2, P.BOOT_H, cq.Vector(0, y1 - P.BOOT_H, P.WHEEL_AXIS_Z),
+        cq.Vector(0, 1, 0)))
+    return _pipe(path, P.CABLE_D).union(boot)
+
+
+def cable_path():
+    """The polyline hub_cable follows, for the bend check in build.py."""
+    y1 = -P.HUB_FLANGE_OFFSET
+    y0 = y1 - P.YOKE_PLATE_T
+    a = math.radians(P.YOKE_CABLE_ANGLE)
+    ux, uz = math.cos(a), math.sin(a)
+    y_rec = y1 - P.YOKE_BOOT_CLEAR / 2
+    y_ch = y0 + P.CABLE_D / 2
+    r_out = P.YOKE_PAD_R
+    z_cross = P.YOKE_TOP_Z0 + P.CABLE_D / 2
+    return [
+        (0, y1, P.WHEEL_AXIS_Z),
+        (0, y_rec, P.WHEEL_AXIS_Z),
+        (r_out * ux, y_ch, P.WHEEL_AXIS_Z + r_out * uz),
+        (r_out * ux, y_ch, z_cross),
+        (0, y_ch + P.CABLE_BEND_R + 5.0, z_cross),
+        (0, y_ch + P.CABLE_BEND_R + 5.0, P.KINGPIN_Z1 + 10),
+    ]
 
 
 def kingpin_tube():

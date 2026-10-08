@@ -28,7 +28,8 @@ PARTS = ["frame", "battery", "drivers", "electronics"]
 MODULE_PARTS = [("wheel", model.hub_motor), ("yoke", model.steering_yoke),
                 ("kingpin", model.kingpin_tube), ("housing", model.bearing_housing),
                 ("steer_motor", model.steer_motor),
-                ("steer_bracket", model.steer_bracket)]
+                ("steer_bracket", model.steer_bracket),
+                ("hub_cable", model.hub_cable)]
 
 
 def _mesh(shape, tol=0.3):

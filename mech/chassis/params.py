@@ -135,6 +135,20 @@ assert len(YOKE_M5_ANGLES) == len(HUB_FLANGE_M5_ANGLES) - 1, (
 YOKE_CABLE_D = 2.0 * (HUB_FLANGE_PCD / 2.0
                       - max(5.5, HUB_FLANGE_DOWEL_D) / 2.0
                       - YOKE_CABLE_WALL)
+# The hub's own loom, modelled so the route can be looked at and checked
+# rather than assumed.  ASSUMED: bundle diameter and boot size; see spec 13b.7.
+CABLE_D = 8.0
+CABLE_BEND_R = 5.0 * CABLE_D         # minimum bend radius for a rubber loom
+BOOT_D = 16.0
+BOOT_H = 8.0                         # how far it stands off the flange face
+# There is 6.2 mm between the web's inboard face and the rails, so the loom
+# cannot run behind the web, and everything outboard of the web is hub motor
+# up to z 156.  It therefore runs in a channel milled into the inboard face,
+# and crosses to the bore through a slot in the underside of the top plate.
+# The channel is cut with the loom's own path, inflated by this, so it fits
+# by construction rather than by two numbers agreeing.
+CABLE_CLEAR = 1.5
+
 YOKE_TOP_Z0 = 180.0          # 9 mm clear over the tire
 YOKE_TOP_Z1 = YOKE_TOP_Z0 + YOKE_TOP_T    # 194.0
 

@@ -46,6 +46,7 @@ COLOURS = {
     "wheel": (0.14, 0.14, 0.15),
     "yoke": (0.231, 0.243, 0.259),
     "kingpin": (0.80, 0.62, 0.20),
+    "hub_cable": (0.10, 0.10, 0.11),
     "housing": (0.70, 0.72, 0.74),
     "steer_motor": (0.27, 0.51, 0.71),
     "steer_bracket": (0.62, 0.65, 0.68),
@@ -102,7 +103,8 @@ def build_scene():
 
     rails, cell, spring = model.suspension()
     turning = [("wheel", model.hub_motor()), ("yoke", model.steering_yoke()),
-               ("kingpin", model.kingpin_tube())]
+               ("kingpin", model.kingpin_tube()),
+               ("hub_cable", model.hub_cable())]
     fixed = [("housing", model.bearing_housing()), ("steer_motor", model.steer_motor()),
              ("steer_bracket", model.steer_bracket()), ("rails", rails),
              ("loadcell", cell), ("spring", spring)]

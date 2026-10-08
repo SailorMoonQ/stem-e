@@ -77,6 +77,7 @@ def interference():
     }
     rails, cell, spring = model.suspension()
     movers["rails"] = rails
+    movers["hub_cable"] = model.hub_cable()
     movers["loadcell"] = cell
     movers["spring"] = spring
 
@@ -108,6 +109,24 @@ def interference():
         v = _vol(stat.intersect(sweep))
         if v > 1.0:
             findings.append(("--", sname, "INSIDE_STEERING_SWEEP", v))
+    # Can the loom actually be bent round the route it is drawn on?  Clearing
+    # the solids is only half of it: a polyline corner needs R*tan(theta/2)
+    # of straight on each leg to be turned at radius R.  The first corner is
+    # the vendor's moulded boot and is their problem, not ours.
+    pts = model.cable_path()
+    for i in range(2, len(pts) - 1):
+        v1 = cq.Vector(*pts[i - 1]).sub(cq.Vector(*pts[i]))
+        v2 = cq.Vector(*pts[i + 1]).sub(cq.Vector(*pts[i]))
+        cosang = v1.dot(v2) / (v1.Length * v2.Length)
+        theta = math.pi - math.acos(max(-1.0, min(1.0, cosang)))
+        if theta < math.radians(5):
+            continue
+        got = min(v1.Length, v2.Length) / math.tan(theta / 2)
+        if got < P.CABLE_BEND_R:
+            findings.append(("cable", "bend %d, %.0f deg" % (i, math.degrees(theta)),
+                             "R%.0f < %.0f needed" % (got, P.CABLE_BEND_R),
+                             P.CABLE_BEND_R - got))
+
     # Movers against each other.  Everything on a corner turns together, so
     # none of it is a static and none of it was being compared: a yoke built
     # on the wrong side of the flange face sat 67 cm3 inside the hub motor
