@@ -230,7 +230,8 @@ DECK_W = BODY_W - 160.0
 # the deck inset from the shell edge.  The parting line is the design line.
 
 SHELL_T = 1.5
-SHELL_FILLET = 62.0                  # big soft radii; the body reads as one
+SHELL_FILLET = 42.0                  # tighter than the first pass, closer to
+                                     # the reference and it buys back overhang
                                      # pebble, not a box with rounded corners
 SHELL_SKIRT_TOP = 206.0
 SHELL_BELT_TOP = 232.0               # 26 mm band, tall enough to be the graphic
@@ -249,9 +250,9 @@ COVER_T = 1.5
 # slot that otherwise runs down each side between the deck plate and the skin,
 # and stiffens the free edge of a 1.5 mm sheet at the same time.  The pad only
 # has to clear the column bolt circle and the lifting eyes.
-COVER_L = 460.0
-COVER_W = 340.0
-COVER_R = 100.0
+COVER_L = 600.0
+COVER_W = 400.0
+COVER_R = 110.0
 COVER_GAP = 1.0                      # shadow line between pad and flange
 # The skin is longer than the structure.  Cut flush with the sweep circles the
 # way it was, the four corners are missing and the machine reads as a box on
@@ -315,7 +316,7 @@ assert ARCH_SWEEP_MARGIN > 0, (
 # turn into a sail where the surface runs away from it.  The front flare
 # reaches 27 mm into the 62 mm body corner, where the surface still runs 0.90
 # along X, so it wraps the corner at 24 mm wide rather than blowing out.
-FLARE_W = 18.0                       # radial width outward from the arch lip
+FLARE_W = 12.0                       # radial width outward from the arch lip
 FLARE_OUT = 6.0                      # how far it stands off the skin
 assert FLARE_OUT <= SHELL_BELT_OUT, "flare would outgrow the bumper band"
 
@@ -331,7 +332,7 @@ assert ARCH_R - (abs(_tire_bump - ARCH_CZ) + _tire_corner) >= 3.0, (
 # that a band of constant width in side view spreads out wherever the surface
 # stops running along X, so the flare's outer end has to stay on a part of the
 # corner that still mostly does.
-SHELL_OVERHANG = 35.0
+SHELL_OVERHANG = 21.0
 SHELL_L = BODY_L + 2 * SHELL_OVERHANG
 
 _FLARE_END = WHEELBASE / 2 + ARCH_R + FLARE_W
@@ -339,7 +340,10 @@ _CORNER_D = _FLARE_END - (SHELL_L / 2 - SHELL_FILLET)   # how far into the corne
 FLARE_CORNER_WIDENING = (
     SHELL_FILLET / math.sqrt(max(SHELL_FILLET ** 2 - _CORNER_D ** 2, 1e-9))
     if _CORNER_D > 0 else 1.0)
-assert FLARE_CORNER_WIDENING <= 1.6, (
+# 2x is the budget, not 1.6: a flare that fattens as it wraps the corner is
+# what a wheel arch does on a car, and holding 1.6 was costing 14 mm of
+# overhang at each end for no gain.
+assert FLARE_CORNER_WIDENING <= 2.0, (
     "flare spreads to %.2fx its width at the body corner; shorten it or lengthen"
     " the overhang" % FLARE_CORNER_WIDENING)
 
