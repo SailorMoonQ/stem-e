@@ -105,8 +105,15 @@ DOOR_CLEAR = (750.0, 800.0)  # measured: 800 rough opening gives under 750 clear
 
 
 def door_fit(body_w, clear):
-    """4WS crabs through sideways, so the narrow side is what has to fit."""
-    return clear - body_w, (clear - body_w) / 2 >= DOOR_MARGIN
+    """4WS crabs through sideways, so the narrow side is what has to fit.
+
+    What has to clear the frame is the widest point of the finished machine,
+    not the structural width.  The bumper band stands SHELL_BELT_OUT proud on
+    each side and was added to the design after this study was written, so
+    this test was passing a number 12 mm narrower than the real one.
+    """
+    overall = body_w + 2 * P.SHELL_BELT_OUT
+    return clear - overall, (clear - overall) / 2 >= DOOR_MARGIN
 
 
 CASES = [
