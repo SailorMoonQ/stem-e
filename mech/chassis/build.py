@@ -31,6 +31,8 @@ PARTS = {
     "shell_belt": model.shell_belt,
     "shell_cover": model.shell_cover,
     "shell_panels": model.shell_panels,
+    "belly_pan": model.belly_pan,
+    "shell_arch_flare": model.shell_arch_flare,
     "shell_arch_liner": model.shell_arch_liner,
     "shell_windows": model.shell_windows,
     "lift_eyes": model.lift_eyes,
@@ -42,11 +44,18 @@ def _vol(shape):
 
 
 def mass_report():
+    """Counts and densities come from massprops, not from the part's name.
+
+    Inferring them from a "shell" prefix counted the belly pan and the lifting
+    eyes four times each, and both of those functions already return every
+    instance unioned together.
+    """
+    missing = sorted(set(PARTS) - set(massprops.MACHINED))
+    assert not missing, "parts with no entry in massprops.MACHINED: %s" % missing
     rows = []
     for name, fn in PARTS.items():
+        n, rho = massprops.MACHINED[name]
         v = _vol(fn())
-        n = 1 if name == "frame" or name.startswith("shell") else 4
-        rho = P.SHELL_DENSITY if name.startswith("shell") else P.ALU_DENSITY
         rows.append((name, n, v / 1000.0, n * v * rho))
     return rows
 

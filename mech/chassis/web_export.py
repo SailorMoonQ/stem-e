@@ -9,6 +9,7 @@ exported in world coordinates.
 
 import json
 import os
+import re
 
 import numpy as np
 import trimesh
@@ -20,6 +21,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 TOL = 0.55
 
+SHELL_PARTS = ("shell_skirt", "shell_upper", "shell_belt", "shell_cover",
+               "shell_panels", "belly_pan", "shell_arch_flare",
+               "shell_arch_liner", "shell_windows", "shell_light",
+               "lift_eyes", "estop")
+
 COLOURS = {
     "frame": (0.70, 0.72, 0.74),
     "shell_skirt": (0.169, 0.184, 0.208),
@@ -28,6 +34,8 @@ COLOURS = {
     "shell_cover": (0.082, 0.09, 0.102),
     "shell_panels": (0.169, 0.184, 0.208),
     "shell_light": (0.357, 0.725, 0.949),
+    "belly_pan": (0.169, 0.184, 0.208),
+    "shell_arch_flare": (0.082, 0.09, 0.102),
     "shell_arch_liner": (0.082, 0.09, 0.102),
     "shell_windows": (0.027, 0.031, 0.035),
     "lift_eyes": (0.416, 0.431, 0.451),
@@ -63,14 +71,33 @@ def _mesh(shape, key, opacity=1.0):
     return m
 
 
+def recolour_legend(html):
+    """Rewrite the viewer legend swatches from COLOURS.
+
+    The legend used to carry its own hex strings, which is a third copy of the
+    palette and the one nobody notices going stale, because a wrong swatch
+    still renders.
+    """
+    def sub(m):
+        name = m.group(2)
+        assert name in COLOURS, "legend lists unknown part %s" % name
+        return "%s#%02x%02x%02x%s" % ((m.group(1),)
+                                      + tuple(round(c * 255) for c in COLOURS[name])
+                                      + (m.group(3),))
+    out, n = re.subn(r"(\['(\w+)','[^']*',')#[0-9a-fA-F]{6}(')", sub, html)
+    assert n, "no legend entries found in the viewer template"
+    return out
+
+
 def build_scene():
+    missing = [n for n in SHELL_PARTS if n not in COLOURS]
+    assert not missing, "no colour for %s" % missing
     scene = trimesh.Scene()
     scene.add_geometry(_mesh(model.frame(), "frame"), node_name="frame")
     scene.add_geometry(_mesh(model.battery(), "battery"), node_name="battery")
     scene.add_geometry(_mesh(model.drivers(), "drivers"), node_name="drivers")
     scene.add_geometry(_mesh(model.electronics(), "electronics"), node_name="electronics")
-    for nm in ("shell_skirt", "shell_upper", "shell_belt", "shell_cover",
-               "shell_panels", "shell_light", "shell_arch_liner", "shell_windows", "lift_eyes", "estop"):
+    for nm in SHELL_PARTS:
         scene.add_geometry(_mesh(getattr(model, nm)(), nm), node_name=nm)
 
     rails, cell, spring = model.suspension()
@@ -125,6 +152,7 @@ def write_pages(glb_path):
         uri = "data:model/gltf-binary;base64," + base64.b64encode(fh.read()).decode("ascii")
     with open(os.path.join(HERE, "viewer.html"), encoding="utf-8") as fh:
         html = fh.read()
+    html = recolour_legend(html)
 
     import build as B
     import massprops

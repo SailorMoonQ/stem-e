@@ -66,10 +66,14 @@ WHEEL_SWEEP_OD = 184.0       # == 2 * SWEEP_CLEAR_R, see below
 BODY_L = WHEELBASE + WHEEL_SWEEP_OD  # structure: frame, deck, bays, base plate
 BODY_W = TRACK + WHEEL_SWEEP_OD
 
-# Raised from 60: the deck is at its floor, so the only way to make the body
-# read thinner is to show more wheel under it.  Costs 2.9 mm of chassis cog
-# height and nothing else, and more clearance is never worse indoors.
-GROUND_CLEARANCE = 80.0      # skirt underside
+# Everything underneath lands on one plane: the frame's base plate, the belly
+# pan that closes the rest of the footprint, and the bottom edge of the skirt.
+# Before this the skirt hung 10 mm below the base plate and the underside was
+# open, so the quoted clearance was the skirt edge at 80 while the real belly
+# was already 90.  Now the number is the whole flat bottom and nothing hangs
+# below it.  Going higher means raising the frame, and with it the deck and
+# the centre of gravity, so this is the floor.
+GROUND_CLEARANCE = 90.0      # the closed underside, and the true lowest point
 DECK_Z = 344.0               # top deck upper face, lift column interface
                              # set so the deck underside clears MODULE_TOP_Z by
                              # more than SUSP_TRAVEL_MECH on full compression
@@ -166,7 +170,11 @@ SHELL_DENSITY = 2.70e-6      # kg/mm^3; the skin is 1.5 mm aluminium now,
 ALU_DENSITY = 2.70e-6        # kg/mm^3, 6061-T6
 
 BASE_PLATE_T = 6.0
-BASE_PLATE_Z0 = GROUND_CLEARANCE + 10.0   # just above the skirt
+BASE_PLATE_Z0 = GROUND_CLEARANCE + 1.5    # sits on the belly pan, which
+                                          # is therefore the only bottom
+                                          # surface: the base plate keeps
+                                          # its lightening holes and the
+                                          # underside is still sealed
 BASE_PLATE_L = BODY_L - 120.0
 BASE_PLATE_W = 2 * SPINE_Y + 24.0
 
@@ -241,11 +249,7 @@ COVER_GAP = 1.0                      # shadow line between pad and flange
 # Length is free here: the door is passed by crabbing and what it measures is
 # the width (see sizing.py), which is untouched at 616.  What does move is the
 # diagonal, 966 -> 1053, still inside a 1200 corridor for a spin in place.
-# The skin reaches below the frame.  80 mm is the belly's ground clearance, a
-# frame requirement; the skirt out at the perimeter has nothing under it but
-# floor, so it drops to 45 and covers the wheel down to near the axle instead
-# of stopping level with the hub centre.
-SKIRT_BOTTOM_Z = 45.0
+SKIRT_BOTTOM_Z = GROUND_CLEARANCE
 
 # Wheel arch, drawn rather than fallen out of a boolean.  Cut by the bare
 # steering sweep the opening was a vesica: the sweep cylinder runs tangent to
@@ -266,6 +270,18 @@ ARCH_R = 95.0
 ARCH_INNER_Y = 200.0                 # the arch runs in behind the wheel, so the
                                      # step down to the sweep cylinder is hidden
 ARCH_LINER_T = 2.0
+BELLY_PAN_T = 1.5
+
+# The arch stands proud of the side instead of being a hole cut in it: a band
+# following the arch, raised off the surface the way a car's wheel arch is.
+# Width is measured radially about the wheel axis in side view and the lift is
+# normal to the skin, so unlike a band of constant width in plan it cannot
+# turn into a sail where the surface runs away from it.  The front flare
+# reaches 27 mm into the 62 mm body corner, where the surface still runs 0.90
+# along X, so it wraps the corner at 24 mm wide rather than blowing out.
+FLARE_W = 26.0                       # radial width outward from the arch lip
+FLARE_OUT = 6.0                      # how far it stands off the skin
+assert FLARE_OUT <= SHELL_BELT_OUT, "flare would outgrow the bumper band"
 
 # The arch is drawn, not derived, so both sides of it are asserted.  Build.py
 # additionally sweeps the tire through bump and lock against the modelled well.

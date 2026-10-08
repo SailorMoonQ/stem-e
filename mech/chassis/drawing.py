@@ -156,6 +156,14 @@ def _body_with_arches(ax, ox, oy, half_span, centres, s):
         cx = ox + c * s
         ax.add_patch(Arc((cx, oy + cz), 2 * r, 2 * r, theta1=th, theta2=180 - th,
                          lw=LW_OUT, ec="k"))
+        # Outer edge of the raised arch, which stands FLARE_OUT off the side.
+        rf = (P.ARCH_R + P.FLARE_W) * s
+        tf = math.degrees(math.atan2(
+            P.SKIRT_BOTTOM_Z - P.ARCH_CZ,
+            math.sqrt((P.ARCH_R + P.FLARE_W) ** 2
+                      - (P.SKIRT_BOTTOM_Z - P.ARCH_CZ) ** 2)))
+        ax.add_patch(Arc((cx, oy + cz), 2 * rf, 2 * rf, theta1=tf, theta2=180 - tf,
+                         lw=LW_THIN, ec="k"))
         feet += [cx - dx * s, cx + dx * s]
     pts = [ox - half_span] + sorted(feet) + [ox + half_span]
     for a, b in zip(pts[0::2], pts[1::2]):
@@ -178,10 +186,11 @@ def side(ax, ox, oy):
         ax.plot([ox - L * 0.22, ox + L * 0.22], [oy + z * s, oy + z * s],
                 lw=LW_THIN, color="k", ls=(0, (4, 2)))
         ax.text(ox, oy + z * s + 1, lab, fontsize=FSS, ha="center", va="bottom")
-    dim_v(ax, oy, oy + P.SKIRT_BOTTOM_Z * s, ox - L / 2 - 7,
-          "裙板下沿 %.0f" % P.SKIRT_BOTTOM_Z)
-    dim_v(ax, oy, oy + P.GROUND_CLEARANCE * s, ox + L / 2 + 7,
-          "腹部离地 %.0f" % P.GROUND_CLEARANCE)
+    dim_v(ax, oy, oy + P.GROUND_CLEARANCE * s, ox - L / 2 - 7,
+          "离地 %.0f" % P.GROUND_CLEARANCE)
+    if abs(P.SKIRT_BOTTOM_Z - P.GROUND_CLEARANCE) > 0.5:
+        dim_v(ax, oy, oy + P.SKIRT_BOTTOM_Z * s, ox + L / 2 + 7,
+              "裙板下沿 %.0f" % P.SKIRT_BOTTOM_Z)
     dim_v(ax, oy, oy + P.HUB_TIRE_OD * s, ox - L / 2 - 17, "Ø%.0f" % P.HUB_TIRE_OD)
     dim_v(ax, oy, oy + P.DECK_Z * s, ox + L / 2 + 7, "全高 %.0f" % P.DECK_Z)
     ax.text(ox - L / 2, oy + P.DECK_Z * s + 5, "侧视图", fontsize=8)
@@ -231,7 +240,7 @@ def data_block(ax, x, y):
         ("驱动器", "DM6540-1EC x4，分体式，车内安装"),
         ("轴距 x 轮距", "%.0f x %.0f" % (P.WHEELBASE, P.TRACK)),
         ("车体 长宽高", "%.0f x %.0f x %.0f" % (P.SHELL_L, P.BODY_W, P.DECK_Z)),
-        ("离地间隙", "腹部 %.0f, 裙板下沿 %.0f" % (P.GROUND_CLEARANCE, P.SKIRT_BOTTOM_Z)),
+        ("离地间隙", "%.0f, 底部全封闭" % P.GROUND_CLEARANCE),
         ("轮眉", "R%.0f @ 轮轴上方 %.0f, 眉骨 %.0f" % (
             P.ARCH_R, P.ARCH_CZ - P.WHEEL_AXIS_Z, P.SHELL_SKIRT_TOP - P.ARCH_CZ - P.ARCH_R)),
         ("升降柱接口", "%d x M8 @ PCD Ø%.0f + Ø%.0f 止口，局部 %.0f mm"

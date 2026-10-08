@@ -13,30 +13,22 @@ import pyvista as pv
 
 import model
 import params as P
+import web_export as W
 
 pv.OFF_SCREEN = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
 
-ALU = "#b8bcc0"
-# The yoke top plate spans the top of the wheel and is the one machined
-# part you see through the arch.  There is 3 mm between it and the tire
-# crown at full bump, so nothing can shroud it; it gets anodized instead.
-ANODIZED = "#3b3e42"
-PARTS = [
-    ("frame", lambda: model.frame(), ALU, 1.0),
-    ("battery", lambda: model.battery(), "#303338", 1.0),
-    ("drivers", lambda: model.drivers(), "#1d6b3a", 1.0),
-    ("electronics", lambda: model.electronics(), "#55505e", 1.0),
-]
-MODULE_PARTS = [
-    ("wheel", model.hub_motor, "#2b2b2e", 1.0),
-    ("yoke", model.steering_yoke, ANODIZED, 1.0),
-    ("kingpin", model.kingpin_tube, "#c89b2c", 1.0),
-    ("housing", model.bearing_housing, ALU, 1.0),
-    ("steer_motor", model.steer_motor, "#4a7fb5", 1.0),
-    ("steer_bracket", model.steer_bracket, ALU, 1.0),
-]
+# One palette for the whole project, kept in web_export so the renders, the
+# glTF and the viewer legend cannot drift apart.  They did: a part added to
+# the model reached the renders but not the colour table, and only surfaced
+# as a KeyError deep inside the export.
+COLOURS = W.COLOURS
+PARTS = ["frame", "battery", "drivers", "electronics"]
+MODULE_PARTS = [("wheel", model.hub_motor), ("yoke", model.steering_yoke),
+                ("kingpin", model.kingpin_tube), ("housing", model.bearing_housing),
+                ("steer_motor", model.steer_motor),
+                ("steer_bracket", model.steer_bracket)]
 
 
 def _mesh(shape, tol=0.3):
@@ -47,22 +39,26 @@ def _mesh(shape, tol=0.3):
 
 
 def _add_all(pl, with_shell):
-    for _, fn, colour, opacity in [(n, f, c, o) for n, f, c, o in PARTS]:
-        pl.add_mesh(_mesh(fn()), color=colour, opacity=opacity, smooth_shading=False)
+    for nm in PARTS:
+        pl.add_mesh(_mesh(getattr(model, nm)()), color=COLOURS[nm], smooth_shading=False)
     rails, cell, spring = model.suspension()
-    extras = [(rails, "#6e7276"), (cell, "#c25450"), (spring, "#86a886")]
-    for _, cx, cy in [(n, x, y) for n, x, y in P.CORNERS]:
+    extras = [(rails, COLOURS["rails"]), (cell, COLOURS["loadcell"]),
+              (spring, COLOURS["spring"])]
+    for _, cx, cy in P.CORNERS:
         mirror = cy < 0
-        for _, fn, colour, _o in MODULE_PARTS:
+        for nm, fn in MODULE_PARTS:
             s = fn()
             s = s.mirror("XZ") if mirror else s
-            pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=colour, smooth_shading=False)
+            pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=COLOURS[nm],
+                        smooth_shading=False)
         for solid, colour in extras:
             s = solid.mirror("XZ") if mirror else solid
-            pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=colour, smooth_shading=False)
+            pl.add_mesh(_mesh(s).translate((cx, cy, 0)), color=colour,
+                        smooth_shading=False)
     if with_shell:
-        for nm, col in [('shell_skirt', '#2b2f35'), ('shell_arch_liner', '#15171a'), ('shell_belt', '#15171a'), ('shell_windows', '#070809'), ('shell_light', '#5bb9f2'), ('shell_upper', '#f2f3f1'), ('shell_panels', '#2b2f35'), ('shell_cover', '#15171a'), ('lift_eyes', '#6a6e73'), ('estop', '#c0282a')]:
-            pl.add_mesh(_mesh(getattr(model, nm)()), color=col, smooth_shading=False)
+        for nm in W.SHELL_PARTS:
+            pl.add_mesh(_mesh(getattr(model, nm)()), color=COLOURS[nm],
+                        smooth_shading=False)
 
 
 def render(name, direction, with_shell, zoom=1.0, bounds=None, size=(1500, 1050)):

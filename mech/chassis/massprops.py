@@ -24,7 +24,12 @@ MACHINED = {
     "shell_belt": (1, P.SHELL_DENSITY),
     "shell_cover": (1, P.SHELL_DENSITY),
     "shell_panels": (1, P.SHELL_DENSITY),
+    "belly_pan": (1, P.SHELL_DENSITY),
+    "shell_arch_flare": (1, P.SHELL_DENSITY),
     "shell_arch_liner": (1, P.SHELL_DENSITY),
+    # Each of these returns every instance already unioned, so the count is 1.
+    "shell_windows": (1, P.SHELL_DENSITY),
+    "lift_eyes": (1, P.ALU_DENSITY),
 
     "estop": (1, P.ALU_DENSITY),
 }

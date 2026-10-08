@@ -560,6 +560,52 @@ def _grown(sections, d):
     return [(l + 2 * d, w + 2 * d, z, r + d) for l, w, z, r in sections]
 
 
+def belly_pan():
+    """Closes the underside, flush with the base plate.
+
+    The machine then has one flat bottom at GROUND_CLEARANCE with nothing
+    hanging below it, instead of an open tray with a skirt dangling 10 mm
+    lower than the frame.  The base plate sits on top of the pan rather than
+    beside it, so the base plate's lightening holes stay and the underside is
+    still sealed.  Only the four wheel wells remain open, and those are lined.
+    """
+    tuck = P.SHELL_BOTTOM_TUCK
+    t = P.SHELL_T
+    pan = (
+        cq.Workplane("XY", origin=(0, 0, P.GROUND_CLEARANCE))
+        .placeSketch(_rr(P.SHELL_L - 2 * tuck - 2 * t, P.BODY_W - 2 * tuck - 2 * t,
+                         0, _F - tuck / 2 - t))
+        .extrude(P.BELLY_PAN_T)
+    )
+    return pan.cut(_wheel_wells())
+
+
+def shell_arch_flare():
+    """Raised wheel arch, standing off the side the way a car's does.
+
+    Built as the sliver between the skin and a copy of it offset outward,
+    trimmed to a ring about the wheel axis in side view.  Its lower ends run
+    out on the skirt's bottom edge and its top meets the band, so it is bounded
+    by the body rather than stopping in the middle of a panel.
+    """
+    proud = (_loft(_grown(_skirt_sections(), P.FLARE_OUT))
+             .cut(_loft(_skirt_sections())))
+    out = None
+    for _, cx, cy in P.CORNERS:
+        s = 1.0 if cy > 0 else -1.0
+        d = -s * (P.BODY_W / 2 + 40 - P.ARCH_INNER_Y)
+        ring = (
+            cq.Workplane("XZ", origin=(cx, s * P.ARCH_INNER_Y, P.ARCH_CZ))
+            .circle(P.ARCH_R + P.FLARE_W)
+            .extrude(d)
+            .cut(cq.Workplane("XZ", origin=(cx, s * P.ARCH_INNER_Y, P.ARCH_CZ))
+                 .circle(P.ARCH_R).extrude(d))
+        )
+        f = proud.intersect(ring)
+        out = f if out is None else out.union(f)
+    return out.cut(_wheel_wells())
+
+
 def shell_arch_liner():
     """Shroud lining the whole well, right out to the lip of the arch.
 
@@ -724,7 +770,8 @@ def lift_eyes():
 def shell():
     """Everything fixed, for mass and clash checking."""
     s = shell_skirt().union(shell_upper()).union(shell_belt()).union(shell_cover())
-    return s.union(shell_arch_liner()).union(shell_windows())
+    return (s.union(shell_arch_flare()).union(shell_arch_liner())
+             .union(shell_windows()).union(belly_pan()))
 
 
 def shell_panels():

@@ -32,6 +32,7 @@ def _uri(name):
 def main():
     with open(os.path.join(HERE, "viewer.html"), encoding="utf-8") as fh:
         html = fh.read()
+    html = W.recolour_legend(html)
 
     import build as B
     import massprops
