@@ -64,7 +64,21 @@ TRACK = 420.0                # Y, left to right kingpin axis distance
 # rather than carrying two numbers that can disagree.
 WHEEL_SWEEP_OD = 184.0       # == 2 * SWEEP_CLEAR_R, see below
 BODY_L = WHEELBASE + WHEEL_SWEEP_OD  # structure: frame, deck, bays, base plate
-BODY_W = TRACK + WHEEL_SWEEP_OD
+# The door sets the width, the steering sweep does not.  Taking the width as
+# TRACK plus the full sweep put the skin exactly tangent to the sweep circle
+# and came to 616 over the bumper band: 67 mm a side through a 750 clear
+# opening, 3 mm under the criterion.  6 mm comes out of the body instead of
+# out of the track, because track buys lateral stability at 1 mm of width for
+# 1 mm of track while lateral is already at 2.07 and the door is not met.
+#
+# What the sweep then reaches past the skin leaves through the wheel arch,
+# which is an opening there anyway: the band sits at 206-232 and the tire
+# crown at full bump is 183, so nothing sweeps at the widest station at all.
+# The arch has to stay a clean arc over it, which is asserted below.
+DOOR_CLEAR = 750.0           # worst case measured clear opening
+DOOR_MARGIN = 70.0           # per side; 50 is the floor, not a comfortable value
+SHELL_BELT_OUT = 6.0         # the bumper band stands proud; it is the widest point
+BODY_W = DOOR_CLEAR - 2 * DOOR_MARGIN - 2 * SHELL_BELT_OUT
 
 # Everything underneath lands on one plane: the frame's base plate, the belly
 # pan that closes the rest of the footprint, and the bottom edge of the skirt.
@@ -220,8 +234,7 @@ SHELL_FILLET = 62.0                  # big soft radii; the body reads as one
                                      # pebble, not a box with rounded corners
 SHELL_SKIRT_TOP = 206.0
 SHELL_BELT_TOP = 232.0               # 26 mm band, tall enough to be the graphic
-SHELL_BELT_OUT = 6.0                 # the band stands proud, it does not recess
-SHELL_BOTTOM_TUCK = 16.0             # draft on the lower body; the aft pack
+SHELL_BOTTOM_TUCK = 13.0             # draft on the lower body; the aft pack
                                      # sets the limit, see build.py THROUGH_SHELL
 
 # Axiom language, after the service robots aboard the ship: one white volume,
@@ -272,6 +285,29 @@ ARCH_INNER_Y = 200.0                 # the arch runs in behind the wheel, so the
 ARCH_LINER_T = 2.0
 BELLY_PAN_T = 1.5
 
+# With the body narrower than TRACK plus the sweep, the sweep now reaches past
+# the skin and has to leave through the arch.  If it ever reached past the
+# arch as well the opening would stop being a clean arc and grow a notch at
+# the top, which no interference check would catch because the skin is cut by
+# the sweep either way.
+def _arch_swallows_sweep():
+    bump = WHEEL_AXIS_Z + SUSP_TRAVEL_MECH + HUB_TIRE_OD / 2
+    worst = None
+    for i in range(1001):
+        z = SKIRT_BOTTOM_Z + (bump - SKIRT_BOTTOM_Z) * i / 1000.0
+        hw = ((BODY_W - 2 * SHELL_BOTTOM_TUCK) / 2
+              + SHELL_BOTTOM_TUCK * (z - SKIRT_BOTTOM_Z)
+              / (SHELL_SKIRT_TOP - SKIRT_BOTTOM_Z))
+        need = math.sqrt(max(SWEEP_CLEAR_R ** 2 - (hw - TRACK / 2) ** 2, 0.0))
+        have = math.sqrt(max(ARCH_R ** 2 - (z - ARCH_CZ) ** 2, 0.0))
+        worst = have - need if worst is None else min(worst, have - need)
+    return worst
+
+
+ARCH_SWEEP_MARGIN = _arch_swallows_sweep()
+assert ARCH_SWEEP_MARGIN > 0, (
+    "steering sweep breaks out of the wheel arch by %.1f mm" % -ARCH_SWEEP_MARGIN)
+
 # The arch stands proud of the side instead of being a hole cut in it: a band
 # following the arch, raised off the surface the way a car's wheel arch is.
 # Width is measured radially about the wheel axis in side view and the lift is
@@ -279,7 +315,7 @@ BELLY_PAN_T = 1.5
 # turn into a sail where the surface runs away from it.  The front flare
 # reaches 27 mm into the 62 mm body corner, where the surface still runs 0.90
 # along X, so it wraps the corner at 24 mm wide rather than blowing out.
-FLARE_W = 26.0                       # radial width outward from the arch lip
+FLARE_W = 18.0                       # radial width outward from the arch lip
 FLARE_OUT = 6.0                      # how far it stands off the skin
 assert FLARE_OUT <= SHELL_BELT_OUT, "flare would outgrow the bumper band"
 
@@ -290,8 +326,22 @@ _tire_corner = math.hypot(HUB_TREAD_W / 2, HUB_TIRE_OD / 2)   # at 90 deg lock
 assert ARCH_R - (abs(_tire_bump - ARCH_CZ) + _tire_corner) >= 3.0, (
     "arch fouls the tire at full bump and lock: %.1f mm"
     % (ARCH_R - (abs(_tire_bump - ARCH_CZ) + _tire_corner)))
-SHELL_OVERHANG = 60.0
+# How far the skin runs past the wheel is set by the flare, not by eye.  60 mm
+# left an obvious slab of bodywork beyond each wheel; the floor under it is
+# that a band of constant width in side view spreads out wherever the surface
+# stops running along X, so the flare's outer end has to stay on a part of the
+# corner that still mostly does.
+SHELL_OVERHANG = 35.0
 SHELL_L = BODY_L + 2 * SHELL_OVERHANG
+
+_FLARE_END = WHEELBASE / 2 + ARCH_R + FLARE_W
+_CORNER_D = _FLARE_END - (SHELL_L / 2 - SHELL_FILLET)   # how far into the corner
+FLARE_CORNER_WIDENING = (
+    SHELL_FILLET / math.sqrt(max(SHELL_FILLET ** 2 - _CORNER_D ** 2, 1e-9))
+    if _CORNER_D > 0 else 1.0)
+assert FLARE_CORNER_WIDENING <= 1.6, (
+    "flare spreads to %.2fx its width at the body corner; shorten it or lengthen"
+    " the overhang" % FLARE_CORNER_WIDENING)
 
 # The white volume drafts gently and then rolls over into the roof, instead of
 # meeting it at a hard arris.  The previous 50 mm a side, in Y only, was a 24

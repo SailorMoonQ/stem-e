@@ -100,8 +100,10 @@ def equipment_bay(body_l, body_w):
     return body_l / 2 - 10.0 - cross, 2 * spine_y
 
 
-DOOR_MARGIN = 70.0           # per side; 50 is the floor, not a comfortable value
-DOOR_CLEAR = (750.0, 800.0)  # measured: 800 rough opening gives under 750 clear
+# From params, so the study and the model cannot disagree about the criterion
+# the width is derived from.  50 a side is the floor, not a comfortable value.
+DOOR_MARGIN = P.DOOR_MARGIN
+DOOR_CLEAR = (P.DOOR_CLEAR, 800.0)   # 800 rough opening gives under 750 clear
 
 
 def door_fit(body_w, clear):
