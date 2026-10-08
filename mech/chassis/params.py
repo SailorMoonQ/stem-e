@@ -14,7 +14,6 @@ Vendor numbers in COMPONENTS are measured from the official STEP models and
 """
 
 import math
-import os
 
 # --------------------------------------------------------------------------
 # Vendor components (measured, do not edit without re-checking the STEP file)
@@ -110,10 +109,29 @@ YOKE_WEB_W = 90.0            # web width where it meets the top plate
 # flange offset is 0.9% of yield (frame_budget.yoke_checks).
 YOKE_PAD_R = 26.0
 
-# The cable leaves the hub through the middle of the flange, so the pass has
-# to live inside the bolt circle.  At 20 it broke into all six M5 clearance
-# holes by 0.25 mm and left 0.5 mm to the dowels, which is no wall at all.
+# Cable exit.  The boot leaves the centre of the hub flange and turns through
+# ninety degrees against the face, so the yoke cannot sit flat on it: it
+# stands off on an annular land at the bolt circle, the boot sits in the
+# recess inside that land, and the cable leaves radially through one channel
+# cut through it.  That channel costs the M5 at its angle, five left.
+#
+# A closed hole was never going to work even at the right diameter: the boot
+# is moulded on and the far end carries XT and JST connectors, so the loom
+# cannot be threaded through during assembly.  The channel is open.
+#
+# ASSUMED, not measured: the boot sits inside the bolt circle and stands off
+# less than YOKE_BOOT_CLEAR, and it leaves at YOKE_CABLE_ANGLE.  That angle is
+# the motor's, not ours - the dowels at 0 and 180 allow only a 180 degree
+# flip.  See spec 13b.7.
+YOKE_BOOT_CLEAR = 10.0               # standoff, and depth of the boot recess
+YOKE_CABLE_ANGLE = 90.0              # up, toward the kingpin bore
+YOKE_CABLE_SLOT_W = 12.0
 YOKE_CABLE_WALL = 3.0
+YOKE_LAND_ID = HUB_FLANGE_PCD - 5.5 - 2.0    # land swallows the bolt holes
+YOKE_LAND_OD = HUB_FLANGE_PCD + 5.5 + 8.0
+YOKE_M5_ANGLES = tuple(a for a in HUB_FLANGE_M5_ANGLES if a != YOKE_CABLE_ANGLE)
+assert len(YOKE_M5_ANGLES) == len(HUB_FLANGE_M5_ANGLES) - 1, (
+    "the cable channel has to displace exactly one screw")
 YOKE_CABLE_D = 2.0 * (HUB_FLANGE_PCD / 2.0
                       - max(5.5, HUB_FLANGE_DOWEL_D) / 2.0
                       - YOKE_CABLE_WALL)
@@ -171,7 +189,7 @@ RAIL_W = 12.0                # MGN12 rail body, square section
 # stiction band is what limits how well the chassis can weigh itself.  See
 # error_budget.py: this placement cuts the band from 5.9 N to 2.1 N.
 SUSP_SPRING_Y = 0.0
-SUSP_SPRING_X = 52.0         # local, two off at -X and +X
+SUSP_SPRING_X = None         # derived below, once LOADCELL_OD exists
 SUSP_CELLS_PER_CORNER = 2
 
 # Everything below YOKE_SWEEP_Z turns with the wheel.  No frame or shell
@@ -198,6 +216,12 @@ CROSS_X = 155.0              # cross members frame the lift column interface, so
 LOADCELL_RANGE_KG = 50.0
 LOADCELL_OD = 36.0
 LOADCELL_H = 30.0
+
+# Derived, not typed.  At 52 the load cells reached in to x = 34 and the
+# kingpin's top flange out to 35, so they overlapped by 1 mm at z 250-256.
+# Nothing caught it: both turn with the wheel, and the interference check was
+# only comparing movers against statics.
+SUSP_SPRING_X = TUBE_FLANGE_OD / 2 + LOADCELL_OD / 2 + 3.0
 SPRING_OD = 32.0
 
 # --------------------------------------------------------------------------
@@ -419,40 +443,28 @@ WEB_HOLE_D = 100.0           # truss holes in the spines and cross members
 WEB_HOLE_PITCH = 150.0
 
 # --------------------------------------------------------------------------
-# Battery layout.  Two arrangements are carried side by side so they can be
-# compared as built rather than argued about:
+# Battery: one pack in the aft bay.  A side by side variant with two packs in
+# the belly flanks was carried buildable for a while and dropped on
+# 2026-10-08: it trailed the aft pack on every figure that mattered and its
+# only advantage, a free middle bay, was never needed.  Its cost was real -
+# every build ran the whole interference check twice.  See spec section 13.
 #
-#   rear  one pack in the aft bay.  Puts the chassis centre of gravity 38 mm
-#         back, which is worth 0.29 of forward safety factor for free.
-#   side  two packs in the belly flanks, G2 style.  Symmetric, 28 percent less
-#         polar inertia, lower, and it gives the shell a waist to wrap.
-#
-#   STEM_BATTERY=side python build.py
+# Putting the pack aft moves the chassis centre of gravity 34 mm back, which
+# is worth 0.23 of forward safety factor for nothing.
 # --------------------------------------------------------------------------
 
-BATTERY_LAYOUT = os.environ.get("STEM_BATTERY", "rear").lower()
-assert BATTERY_LAYOUT in ("rear", "side"), BATTERY_LAYOUT
-EXPORT_DIR = "export/" + BATTERY_LAYOUT
+EXPORT_DIR = "export"
 
 BATTERY_MASS = 8.0
 REAR_BAY_X = -(CROSS_X + SPINE_T / 2 + (BODY_L / 2 - 10.0)) / 2
 
-if BATTERY_LAYOUT == "rear":
-    # One pack, aft bay.  The bay is waisted, not rectangular: the two rear
-    # sweep circles pinch the clear width from 262 to 236 at the axle line, so
-    # the pack is sized on the narrow point.  build.py checks it.
-    BATTERY_L, BATTERY_W, BATTERY_H = 190.0, 220.0, 200.0
-    BATTERY_PACKS = [(REAR_BAY_X, 0.0)]
-    ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
-    ELEC_SIDE = True             # electronics in the belly flanks
-else:
-    # Two packs in the belly flanks, hung off the outboard face of each spine.
-    # Nothing supports them from below out there, which is fine: a flank pack
-    # is a plate hanging on the web, not a box sitting on a floor.
-    BATTERY_L, BATTERY_W, BATTERY_H = 300.0, 120.0, 170.0
-    BATTERY_PACKS = []           # filled in below once SPINE_Y is known
-    ELEC_L, ELEC_W, ELEC_H = 170.0, 225.0, 150.0
-    ELEC_SIDE = False            # electronics take the aft bay instead
+# The bay is waisted, not rectangular: the two rear sweep circles pinch the
+# clear width from 262 to 236 at the axle line, so the pack is sized on the
+# narrow point.  build.py checks it.
+BATTERY_L, BATTERY_W, BATTERY_H = 190.0, 220.0, 200.0
+BATTERY_PACKS = [(REAR_BAY_X, 0.0)]
+ELEC_L, ELEC_W, ELEC_H = 300.0, 110.0, 160.0
+ELEC_SIDE = True                 # electronics in the belly flanks
 
 BATTERY_X = BATTERY_PACKS[0][0] if BATTERY_PACKS else 0.0
 # Deck cut-out over each equipment bay.  Sized to stay clear of the cross
@@ -545,13 +557,6 @@ CORNERS = (
 
 _FLANK_Y = SPINE_Y + SPINE_T / 2
 
-if BATTERY_LAYOUT == "side":
-    BATTERY_PACKS = [(0.0, _FLANK_Y + BATTERY_W / 2),
-                     (0.0, -(_FLANK_Y + BATTERY_W / 2))]
-    BATTERY_Z0 = GROUND_CLEARANCE + 10.0        # as low as the skirt allows
-    ELEC_PACKS = [(REAR_BAY_X, 0.0)]
-    ELEC_Z0 = BASE_PLATE_Z0 + BASE_PLATE_T
-else:
-    BATTERY_Z0 = BASE_PLATE_Z0 + BASE_PLATE_T
-    ELEC_PACKS = [(0.0, _FLANK_Y + ELEC_W / 2), (0.0, -(_FLANK_Y + ELEC_W / 2))]
-    ELEC_Z0 = BASE_PLATE_Z0 + 14.0
+BATTERY_Z0 = BASE_PLATE_Z0 + BASE_PLATE_T
+ELEC_PACKS = [(0.0, _FLANK_Y + ELEC_W / 2), (0.0, -(_FLANK_Y + ELEC_W / 2))]
+ELEC_Z0 = BASE_PLATE_Z0 + 14.0

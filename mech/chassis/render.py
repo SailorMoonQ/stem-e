@@ -17,7 +17,7 @@ import web_export as W
 
 pv.OFF_SCREEN = True
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
+OUT = os.path.join(HERE, P.EXPORT_DIR)
 
 # One palette for the whole project, kept in web_export so the renders, the
 # glTF and the viewer legend cannot drift apart.  They did: a part added to

@@ -106,9 +106,9 @@ def steering_yoke():
         .lineTo(hw, P.YOKE_TOP_Z1)
         .lineTo(r, P.WHEEL_AXIS_Z)
         .close()
-        .extrude(-P.YOKE_PLATE_T)
+        .extrude(P.YOKE_PLATE_T)
         .union(cq.Workplane("XZ", origin=(0, 0, P.WHEEL_AXIS_Z))
-               .circle(r).extrude(-P.YOKE_PLATE_T))
+               .circle(r).extrude(P.YOKE_PLATE_T))
         .translate((0, y1, 0))
     )
     web = profile
@@ -121,10 +121,36 @@ def steering_yoke():
 
     pad = cq.Workplane("XZ", origin=(0, y1, P.WHEEL_AXIS_Z))
     for d, pts in (
-        (5.5, _polar(P.HUB_FLANGE_PCD, P.HUB_FLANGE_M5_ANGLES)),
+        (5.5, _polar(P.HUB_FLANGE_PCD, P.YOKE_M5_ANGLES)),
         (P.HUB_FLANGE_DOWEL_D, _polar(P.HUB_FLANGE_PCD, P.HUB_FLANGE_DOWEL_ANGLES)),
     ):
         yoke = yoke.cut(pad.pushPoints(pts).circle(d / 2).extrude(P.YOKE_PLATE_T))
+
+    # Stand the face off on a land at the bolt circle, so the boot gets a
+    # recess and the cable a way out.  Everything inside YOKE_PAD_R except the
+    # land, and the land itself where the channel crosses it, drops away by
+    # YOKE_BOOT_CLEAR.
+    a = math.radians(P.YOKE_CABLE_ANGLE)
+    ux, uz = math.cos(a), math.sin(a)
+    px, pz = -uz, ux
+    hw, run = P.YOKE_CABLE_SLOT_W / 2, P.YOKE_PAD_R + 4
+    channel = (
+        pad.polyline([(hw * px, hw * pz),
+                      (run * ux + hw * px, run * uz + hw * pz),
+                      (run * ux - hw * px, run * uz - hw * pz),
+                      (-hw * px, -hw * pz)])
+        .close()
+        .extrude(P.YOKE_BOOT_CLEAR)
+    )
+    land = (pad.circle(P.YOKE_LAND_OD / 2).extrude(P.YOKE_BOOT_CLEAR)
+            .cut(pad.circle(P.YOKE_LAND_ID / 2).extrude(P.YOKE_BOOT_CLEAR))
+            .cut(channel))
+    yoke = yoke.cut(pad.circle(P.YOKE_PAD_R).extrude(P.YOKE_BOOT_CLEAR).cut(land))
+
+    # Where the channel ends, cross to the inboard face and run up to the bore.
+    yoke = yoke.cut(
+        pad.pushPoints([(P.YOKE_PAD_R * ux, P.YOKE_PAD_R * uz)])
+        .circle(P.YOKE_CABLE_SLOT_W / 2).extrude(P.YOKE_PLATE_T))
     yoke = yoke.cut(pad.circle(P.YOKE_CABLE_D / 2).extrude(P.YOKE_PLATE_T))
 
     bore = (
@@ -530,19 +556,11 @@ def _panel_cuts():
     connector panel.
     """
     cuts = []
-    if P.BATTERY_LAYOUT == "rear":
-        cuts.append(
-            cq.Workplane("XY", origin=(-P.SHELL_L / 2 - 20, 0, 96))
-            .box(70, 300, 100, centered=(True, True, False))
-            .edges("|X").fillet(14)
-        )
-    else:
-        for sy in (1.0, -1.0):
-            cuts.append(
-                cq.Workplane("XY", origin=(0, sy * (P.BODY_W / 2 + 20), 96))
-                .box(330, 70, 100, centered=(True, True, False))
-                .edges("|Y").fillet(14)
-            )
+    cuts.append(
+        cq.Workplane("XY", origin=(-P.SHELL_L / 2 - 20, 0, 96))
+        .box(70, 300, 100, centered=(True, True, False))
+        .edges("|X").fillet(14)
+    )
     return cuts
 
 

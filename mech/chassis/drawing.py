@@ -22,7 +22,7 @@ import massprops
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
+OUT = os.path.join(HERE, P.EXPORT_DIR)
 
 A3 = (420.0, 297.0)
 SCALE = 1 / 6.0
@@ -256,12 +256,10 @@ def data_block(ax, x, y):
          % (P.SUSP_TRAVEL_NOMINAL, P.SUSP_TRAVEL_MECH, P.SUSP_RATE)),
         ("称重", "每角 2 个 %.0f kg，跨主销对称，8 个" % P.LOADCELL_RANGE_KG),
         ("驻车", "无机械刹车，四轮 X 型互锁"),
-        ("电池方案", "%s" % ("后舱单包 %.0fx%.0fx%.0f，车尾抽出"
-                  % (P.BATTERY_L, P.BATTERY_W, P.BATTERY_H)
-                  if P.BATTERY_LAYOUT == "rear" else
-                  "腹部两侧各一包 %.0fx%.0fx%.0f，侧门更换"
-                  % (P.BATTERY_L, P.BATTERY_W, P.BATTERY_H))),
-        ("过门", "4WS 横移通过，净宽 ≥750 时单边余量 %.0f" % ((750 - P.BODY_W) / 2)),
+        ("电池方案", "后舱单包 %.0fx%.0fx%.0f，车尾抽出"
+                  % (P.BATTERY_L, P.BATTERY_W, P.BATTERY_H)),
+        ("过门", "4WS 横移通过，净宽 %.0f 时单边余量 %.1f（判据 %.0f）"
+         % (P.DOOR_CLEAR, (P.DOOR_CLEAR - P.BODY_W_MAX) / 2, P.DOOR_MARGIN)),
         ("侧向作业", "硬件按 %.0f 定尺寸；实际范围由动态包络实时给出"
          % P.ARM_REACH_LAT),
         ("急停", "%.1f m/s2，Cat-1 受控停机，禁止短接相线" % P.ESTOP_DECEL),

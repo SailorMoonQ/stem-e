@@ -19,7 +19,7 @@ import model
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
+OUT = os.path.join(HERE, P.EXPORT_DIR)
 PARTS = {
     "steering_yoke": model.steering_yoke,
     "kingpin_tube": model.kingpin_tube,
@@ -108,6 +108,19 @@ def interference():
         v = _vol(stat.intersect(sweep))
         if v > 1.0:
             findings.append(("--", sname, "INSIDE_STEERING_SWEEP", v))
+    # Movers against each other.  Everything on a corner turns together, so
+    # none of it is a static and none of it was being compared: a yoke built
+    # on the wrong side of the flange face sat 67 cm3 inside the hub motor
+    # and every check passed.
+    names = sorted(movers)
+    for i, an in enumerate(names):
+        for bn in names[i + 1:]:
+            try:
+                v = _vol(movers[an].intersect(movers[bn]))
+            except Exception:
+                v = 0.0
+            if v > 1.0:
+                findings.append(("corner", an, bn, v))
     # The arch is a drawn shape, not the swept envelope, so the tire is run
     # through the corner of its own envelope against it: full bump, and lock
     # from straight ahead to ninety degrees.

@@ -86,12 +86,6 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     </div>
 
     <div class="rail">
-      <section class="panel" id="vpanel" hidden>
-        <h2>电池方案</h2>
-        <div class="presets" id="variants"></div>
-        <div class="rd" id="vinfo"></div>
-      </section>
-
       <section class="panel">
         <h2>转向姿态</h2>
         <div class="presets" id="presets"></div>
@@ -179,14 +173,8 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     ['spin','原地自转'], ['lock','X 型驻车'], ['turn','转弯 R1000']
   ];
 
-  var VARIANTS = (typeof MODELS === 'object' && MODELS) ? MODELS
-                 : {single: (typeof MODEL_URI === 'string' ? MODEL_URI : null)};
-  var VLABEL = {rear: '尾舱单包', side: '腹部两侧', single: ''};
-  var VNOTE = {
-    rear: '一包 190×220×200 在后舱，前倾安全系数 2.08，质心前后 −38 mm',
-    side: '两包 300×120×170 挂在立板外侧，前倾安全系数 1.86，质心前后 −10 mm',
-    single: ''
-  };
+  // One battery layout since 2026-10-08; the flank variant was dropped.
+  var VARIANTS = {single: (typeof MODEL_URI === 'string' ? MODEL_URI : null)};
   var vstate = {};
   var active = Object.keys(VARIANTS)[0];
 
@@ -281,7 +269,6 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
       ingest(name, gltf);
       if (--pending === 0) {
         document.getElementById('load').hidden = true;
-        buildVariantUI();
         apply();
         updateView();
       }
@@ -294,29 +281,6 @@ footer code{font-family:var(--mono);font-size:11px;color:var(--ink2)}
     }
   });
 
-  function buildVariantUI(){
-    var names = Object.keys(vstate);
-    if (names.length < 2) return;
-    var box = document.getElementById('variants');
-    document.getElementById('vpanel').hidden = false;
-    names.forEach(function(n){
-      var b = document.createElement('button');
-      b.textContent = VLABEL[n] || n;
-      b.setAttribute('aria-pressed', String(n === active));
-      b.addEventListener('click', function(){
-        active = n;
-        names.forEach(function(k){ vstate[k].root.visible = (k === active); });
-        Array.prototype.forEach.call(box.children, function(c){
-          c.setAttribute('aria-pressed', String(c === b));
-        });
-        document.getElementById('vinfo').textContent = VNOTE[active] || '';
-        apply();
-        updateView();
-      });
-      box.appendChild(b);
-    });
-    document.getElementById('vinfo').textContent = VNOTE[active] || '';
-  }
 
   function apply(){
     ORDER.forEach(function(k){

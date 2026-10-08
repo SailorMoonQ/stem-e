@@ -18,7 +18,7 @@ import model
 import params as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, *P.EXPORT_DIR.split("/"))
+OUT = os.path.join(HERE, P.EXPORT_DIR)
 TOL = 0.55
 
 SHELL_PARTS = ("shell_skirt", "shell_upper", "shell_belt", "shell_cover",
