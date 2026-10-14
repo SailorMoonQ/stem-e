@@ -31,3 +31,20 @@ STEM_BATTERY=side python build.py    # 另一套电池方案，输出进 export/
 
 `build.py` 生成 `export/chassis_params.yaml` 供 `src/description/` 读取，
 URDF 不应重复声明这里的几何（见根 CLAUDE.md 不变量 2）。
+
+## FreeCAD：马鞍形车身方案（参考智元 G2）
+
+`freecad/g2_style.py` 用 FreeCAD 重画了车身：两侧是高侧舱，中间是低通道。
+走行部（轴距、轮距、H65 轮、转向模块、门宽、离地间隙）全部从 `params.py`
+导入，只有车身是新的。
+
+- 侧舱顶面 z 440，各装一块电池（352×110×230），从顶部舱盖向上抽出，可热插拔
+- 中间通道宽 300，底面 z 300，比原甲板低 44，升降柱/腰部坐在这里
+- 中舱高度仍放得下 160 高的电子盒，因为电池已经移到侧舱
+
+```bash
+freecadcmd freecad/g2_style.py                          # FCStd + STEP + 干涉检查
+STEM_FC_BATCH=1 xvfb-run -a freecad freecad/g2_style.py # 另外写入颜色并出图
+```
+
+输出在 `export/freecad/`。
