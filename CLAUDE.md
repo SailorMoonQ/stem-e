@@ -50,3 +50,17 @@ shared memory transport for onboard traffic. Operator machines must set
 rosbags record to local storage on the robot and sync to the NAS afterwards. Never record
 straight to network storage: the robot's only link is WiFi, and a bag with dropped frames
 is worthless. See `tools/rosbag/`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `SailorMoonQ/stem-e`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
